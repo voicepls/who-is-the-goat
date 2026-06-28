@@ -1,104 +1,112 @@
 "use client";
 
 import confetti from "canvas-confetti";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useRef } from "react";
+import AdSlot from "@/components/AdSlot";
+import ImageAvatar from "@/components/ImageAvatar";
 import MessiAvatar from "@/components/MessiAvatar";
+import PlayerCard from "@/components/PlayerCard";
 import RonaldoAvatar from "@/components/RonaldoAvatar";
 import StatsPanel from "@/components/StatsPanel";
 import VoteBar from "@/components/VoteBar";
 import WCScores from "@/components/WCScores";
+import { useSound } from "@/lib/useSound";
 import { PlayerKey, useVotes } from "@/lib/useVotes";
 
-function getReactionCopy(
-  ronaldoPercent: number,
-  messiPercent: number,
-  votedPlayer: PlayerKey | null,
-) {
-  const diff = Math.abs(ronaldoPercent - messiPercent);
+const RON_AVATAR = process.env.NEXT_PUBLIC_RON_AVATAR;
+const RON_AVATAR_SAD = process.env.NEXT_PUBLIC_RON_AVATAR_SAD;
+const MES_AVATAR = process.env.NEXT_PUBLIC_MES_AVATAR;
+const MES_AVATAR_SAD = process.env.NEXT_PUBLIC_MES_AVATAR_SAD;
 
-  if (votedPlayer) {
-    return "Your vote has been counted. Choose wisely.";
-  }
+function getReactionCopy(ronaldoPercent: number, messiPercent: number) {
+  const diff = ronaldoPercent - messiPercent;
+  const gap = Math.abs(diff);
 
-  if (diff < 5) {
-    return "The debate never ends... vote to break the tie!";
-  }
-
-  if (ronaldoPercent - messiPercent > 40) {
-    return "SUIIIIII! CR7 nation eating good tonight 🔥";
-  }
-
-  if (messiPercent - ronaldoPercent > 40) {
-    return "The GOAT has spoken. No debate. 🐐";
-  }
-
-  if (ronaldoPercent - messiPercent > 20) {
-    return "Ronaldo has the timeline yelling SUIII right now.";
-  }
-
-  if (messiPercent - ronaldoPercent > 20) {
-    return "Messi magic is turning this vote into a rondo.";
-  }
-
-  return "Still too close. Group chat arguments remain undefeated.";
-}
-
-function getAvatarState(ronaldoPercent: number, messiPercent: number) {
-  const diff = Math.abs(ronaldoPercent - messiPercent);
-
-  if (diff < 5) {
-    return { ronaldo: "neutral", messi: "neutral" } as const;
-  }
-
-  if (ronaldoPercent - messiPercent > 40) {
-    return { ronaldo: "dominant", messi: "losingBig" } as const;
-  }
-
-  if (messiPercent - ronaldoPercent > 40) {
-    return { ronaldo: "losingBig", messi: "dominant" } as const;
-  }
-
-  if (ronaldoPercent - messiPercent > 20) {
-    return { ronaldo: "winning", messi: "losing" } as const;
-  }
-
-  if (messiPercent - ronaldoPercent > 20) {
-    return { ronaldo: "losing", messi: "winning" } as const;
-  }
-
-  return { ronaldo: "neutral", messi: "neutral" } as const;
+  if (gap < 4) return "Knife edge. Keep tapping to break the tie!";
+  if (diff > 40) return "SUIIIIII! CR7 nation eating good tonight 🔥";
+  if (diff < -40) return "The GOAT has spoken. No debate. 🐐";
+  if (diff > 20) return "Ronaldo has the timeline yelling SUIII right now.";
+  if (diff < -20) return "Messi magic is turning this vote into a rondo.";
+  if (diff > 8) return "Ronaldo edging ahead — Messi fans, do something.";
+  if (diff < -8) return "Messi nudging in front. CR7 army, wake up.";
+  return "Too close to call. Group chat wars continue.";
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("en-US").format(value);
+  return new Intl.NumberFormat("en-US").format(Math.round(value));
 }
 
 export default function Home() {
-  const { counts, hasVoted, votedPlayer, isReady, isVoting, total, percentages, vote } = useVotes();
-  const avatarState = getAvatarState(percentages.ron, percentages.mes);
-  const reactionCopy = getReactionCopy(percentages.ron, percentages.mes, votedPlayer);
+  const { counts, total, percentages, myVoteTotal, isReady, isLive, vote } = useVotes();
+  const { play, muted, toggleMute } = useSound();
+  const reduceMotion = useReducedMotion();
+  const reactionCopy = getReactionCopy(percentages.ron, percentages.mes);
+  const lastConfettiRef = useRef(0);
 
-  const submitVote = async (player: PlayerKey) => {
-    const didVote = await vote(player);
+  const ronaldoMood = percentages.ron - percentages.mes;
+  const messiMood = -ronaldoMood;
 
-    if (!didVote) {
-      return;
+  const submitVote = (player: PlayerKey) => {
+    if (!vote(player)) return;
+    play(player);
+    if (reduceMotion) return;
+
+    const now = Date.now();
+    if (now - lastConfettiRef.current > 220) {
+      lastConfettiRef.current = now;
+      confetti({
+        particleCount: 70,
+        spread: 70,
+        startVelocity: 42,
+        origin: player === "ron" ? { x: 0.25, y: 0.5 } : { x: 0.75, y: 0.5 },
+        colors:
+          player === "ron"
+            ? ["#185FA5", "#ffffff", "#c7d2fe"]
+            : ["#1D9E75", "#ffffff", "#bfdbfe"],
+      });
     }
-
-    const origin = player === "ron" ? { x: 0.25, y: 0.48 } : { x: 0.75, y: 0.48 };
-
-    confetti({
-      particleCount: 130,
-      spread: 76,
-      startVelocity: 48,
-      origin,
-      colors: player === "ron" ? ["#185FA5", "#ffffff", "#c7d2fe"] : ["#1D9E75", "#ffffff", "#bfdbfe"],
-    });
   };
 
+  const ronAvatar = RON_AVATAR ? (
+    <ImageAvatar src={RON_AVATAR} sadSrc={RON_AVATAR_SAD || undefined} mood={ronaldoMood} alt="Cristiano Ronaldo avatar" winEmoji="🔥" />
+  ) : (
+    <RonaldoAvatar mood={ronaldoMood} />
+  );
+
+  const mesAvatar = MES_AVATAR ? (
+    <ImageAvatar src={MES_AVATAR} sadSrc={MES_AVATAR_SAD || undefined} mood={messiMood} alt="Lionel Messi avatar" winEmoji="🐐" />
+  ) : (
+    <MessiAvatar mood={messiMood} />
+  );
+
   return (
-    <main className="min-h-screen overflow-hidden bg-night text-slate-50">
-      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
+    <main className="relative min-h-screen overflow-hidden bg-night text-slate-50">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden">
+        <motion.div
+          className="absolute -left-24 top-4 h-80 w-80 rounded-full bg-ron/20 blur-3xl"
+          animate={{ x: [0, 50, 0], y: [0, 30, 0] }}
+          transition={{ repeat: Infinity, duration: 15, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -right-24 bottom-4 h-96 w-96 rounded-full bg-mes/20 blur-3xl"
+          animate={{ x: [0, -50, 0], y: [0, -28, 0] }}
+          transition={{ repeat: Infinity, duration: 18, ease: "easeInOut" }}
+        />
+        {["⚽", "🐐", "⚽"].map((emoji, index) => (
+          <motion.span
+            key={index}
+            className="absolute text-2xl opacity-[0.07]"
+            style={{ left: `${15 + index * 32}%`, bottom: "-40px" }}
+            animate={{ y: [0, -700], rotate: [0, 220] }}
+            transition={{ repeat: Infinity, duration: 22 + index * 5, ease: "linear", delay: index * 4 }}
+          >
+            {emoji}
+          </motion.span>
+        ))}
+      </div>
+
+      <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 pb-28 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <motion.div
@@ -124,94 +132,65 @@ export default function Home() {
             </p>
           </div>
 
-          <motion.div
-            animate={{ scale: [1, 1.05, 1], boxShadow: ["0 0 0 rgba(239,68,68,0)", "0 0 28px rgba(239,68,68,0.5)", "0 0 0 rgba(239,68,68,0)"] }}
-            transition={{ repeat: Infinity, duration: 1.45, ease: "easeInOut" }}
-            className="inline-flex w-fit items-center gap-2 rounded-full border border-red-400/30 bg-red-500/[0.12] px-4 py-2 text-sm font-black text-red-200"
-          >
-            <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-            LIVE
-          </motion.div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleMute}
+              aria-label={muted ? "Unmute sounds" : "Mute sounds"}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-lg transition hover:bg-white/10"
+            >
+              {muted ? "🔇" : "🔊"}
+            </button>
+
+            <motion.div
+              animate={{
+                scale: [1, 1.05, 1],
+                boxShadow: ["0 0 0 rgba(239,68,68,0)", "0 0 28px rgba(239,68,68,0.5)", "0 0 0 rgba(239,68,68,0)"],
+              }}
+              transition={{ repeat: Infinity, duration: 1.45, ease: "easeInOut" }}
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-red-400/30 bg-red-500/[0.12] px-4 py-2 text-sm font-black text-red-200"
+            >
+              <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+              LIVE
+            </motion.div>
+          </div>
         </header>
 
         <section className="grid flex-1 items-center gap-6 py-7 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.86fr)]">
           <div className="grid min-h-[620px] gap-4 lg:grid-cols-2">
-            <motion.article
-              layout
-              className="relative flex min-h-[520px] flex-col justify-between overflow-hidden rounded-lg border border-white/10 bg-white/[0.035] p-4 shadow-glowBlue backdrop-blur md:p-5"
-            >
-              <div className="absolute inset-x-0 top-0 h-1 bg-ron" />
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200/80">Portugal · No. 7</p>
-                  <h2 className="mt-1 text-3xl font-black text-white">Cristiano Ronaldo</h2>
-                </div>
-                <div className="rounded-md border border-white/10 bg-ron/20 px-3 py-2 text-right">
-                  <p className="text-xs font-bold text-blue-100/80">Votes</p>
-                  <p className="text-xl font-black text-white">{formatNumber(counts.ron)}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-1 items-center justify-center py-3">
-                <RonaldoAvatar state={avatarState.ronaldo} />
-              </div>
-
-              <button
-                type="button"
-                disabled={!isReady || hasVoted || isVoting}
-                onClick={() => submitVote("ron")}
-                className="group inline-flex h-14 w-full items-center justify-center gap-2 rounded-md bg-ron px-5 text-base font-black text-white shadow-glowBlue transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Vote Ronaldo
-                <span aria-hidden="true" className="transition group-hover:translate-x-1">
-                  →
-                </span>
-              </button>
-            </motion.article>
-
-            <motion.article
-              layout
-              className="relative flex min-h-[520px] flex-col justify-between overflow-hidden rounded-lg border border-white/10 bg-white/[0.035] p-4 shadow-glowGreen backdrop-blur md:p-5"
-            >
-              <div className="absolute inset-x-0 top-0 h-1 bg-mes" />
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-200/80">Argentina · No. 10</p>
-                  <h2 className="mt-1 text-3xl font-black text-white">Lionel Messi</h2>
-                </div>
-                <div className="rounded-md border border-white/10 bg-mes/20 px-3 py-2 text-right">
-                  <p className="text-xs font-bold text-emerald-100/80">Votes</p>
-                  <p className="text-xl font-black text-white">{formatNumber(counts.mes)}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-1 items-center justify-center py-3">
-                <MessiAvatar state={avatarState.messi} />
-              </div>
-
-              <button
-                type="button"
-                disabled={!isReady || hasVoted || isVoting}
-                onClick={() => submitVote("mes")}
-                className="group inline-flex h-14 w-full items-center justify-center gap-2 rounded-md bg-mes px-5 text-base font-black text-white shadow-glowGreen transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Vote Messi
-                <span aria-hidden="true" className="transition group-hover:translate-x-1">
-                  →
-                </span>
-              </button>
-            </motion.article>
+            <PlayerCard
+              player="ron"
+              name="Cristiano Ronaldo"
+              meta="Portugal · No. 7"
+              votes={formatNumber(counts.ron)}
+              avatar={ronAvatar}
+              disabled={!isReady}
+              onVote={() => submitVote("ron")}
+            />
+            <PlayerCard
+              player="mes"
+              name="Lionel Messi"
+              meta="Argentina · No. 10"
+              votes={formatNumber(counts.mes)}
+              avatar={mesAvatar}
+              disabled={!isReady}
+              onVote={() => submitVote("mes")}
+            />
           </div>
 
           <aside className="flex flex-col gap-4">
-            <section className="rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur md:p-5">
+            <section
+              role="status"
+              aria-live="polite"
+              className="rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur md:p-5"
+            >
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Live vote meter</p>
                   <h2 className="text-2xl font-black text-white">{formatNumber(total)} total votes</h2>
                 </div>
                 <div className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-300">
-                  {hasVoted ? "Locked in" : "Vote once"}
+                  {isLive ? "Live · Neon" : "Demo mode"}
                 </div>
               </div>
 
@@ -229,9 +208,17 @@ export default function Home() {
                   {reactionCopy}
                 </motion.p>
               </AnimatePresence>
+
+              <p className="mt-3 text-center text-xs font-bold text-slate-400">
+                {myVoteTotal > 0
+                  ? `You've hyped ${formatNumber(myVoteTotal)} time${myVoteTotal === 1 ? "" : "s"} — keep tapping! 👆`
+                  : "Tap a player as many times as you want 👆"}
+              </p>
             </section>
 
             <WCScores />
+
+            <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR} minHeight={250} />
           </aside>
         </section>
 
