@@ -55,11 +55,11 @@ export default function PlayerCard({
     >
       <div className={`absolute inset-x-0 top-0 h-1 ${theme.accent}`} />
       <div className="goat-card-head flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className={`text-xs font-black uppercase tracking-[0.22em] ${theme.metaText}`}>{meta}</p>
-          <h2 className="mt-1 text-3xl font-black text-white">{name}</h2>
+          <h2 className="goat-player-name mt-1 text-3xl font-black text-white">{name}</h2>
         </div>
-        <div className={`rounded-md border border-white/10 ${theme.votesBox} px-3 py-2 text-right`}>
+        <div className={`goat-vote-count-box rounded-md border border-white/10 ${theme.votesBox} px-3 py-2 text-right`}>
           <p className={`text-xs font-bold ${theme.votesLabel}`}>Votes</p>
           <p className="text-xl font-black text-white">{votes}</p>
         </div>

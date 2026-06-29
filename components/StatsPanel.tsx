@@ -65,19 +65,19 @@ function StatRow({ stat, index }: { stat: Stat; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.4, delay: index * 0.06 }}
-      className="border-b border-white/10 px-3 py-3 last:border-0 sm:px-4"
+      className="goat-stat-row border-b border-white/10 px-3 py-3 last:border-0 sm:px-4"
     >
-      <div className="grid grid-cols-[1.25fr_0.85fr_0.85fr] items-center">
-        <span className="text-sm font-bold text-slate-300">{stat.label}</span>
+      <div className="goat-stat-grid grid grid-cols-[1.25fr_0.85fr_0.85fr] items-center">
+        <span className="goat-stat-label text-sm font-bold text-slate-300">{stat.label}</span>
         <span
-          className={`text-right text-lg font-black tabular-nums transition-colors ${
+          className={`goat-stat-value text-right text-lg font-black tabular-nums transition-colors ${
             ronLeads ? "text-blue-300" : "text-white"
           }`}
         >
           <CountUp value={stat.ron} decimals={stat.decimals} prefix={stat.prefix} suffix={stat.suffix} />
         </span>
         <span
-          className={`text-right text-lg font-black tabular-nums transition-colors ${
+          className={`goat-stat-value text-right text-lg font-black tabular-nums transition-colors ${
             mesLeads ? "text-emerald-300" : "text-white"
           }`}
         >
@@ -101,7 +101,7 @@ function StatRow({ stat, index }: { stat: Stat; index: number }) {
 
 export default function StatsPanel() {
   return (
-    <section className="grid gap-4 border-t border-white/10 pt-5 lg:grid-cols-[0.78fr_1fr]">
+    <section className="goat-stats-section grid gap-4 border-t border-white/10 pt-5 lg:grid-cols-[0.78fr_1fr]">
       <motion.div
         initial={{ opacity: 0, x: -16 }}
         whileInView={{ opacity: 1, x: 0 }}
@@ -115,8 +115,8 @@ export default function StatsPanel() {
         </p>
       </motion.div>
 
-      <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]">
-        <div className="grid grid-cols-[1.25fr_0.85fr_0.85fr] border-b border-white/10 bg-white/[0.045] px-3 py-3 text-xs font-black uppercase tracking-[0.16em] text-slate-400 sm:px-4">
+      <div className="goat-stats-card overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]">
+        <div className="goat-stat-header grid grid-cols-[1.25fr_0.85fr_0.85fr] border-b border-white/10 bg-white/[0.045] px-3 py-3 text-xs font-black uppercase tracking-[0.16em] text-slate-400 sm:px-4">
           <span>Stat</span>
           <span className="text-right text-blue-200">Ronaldo</span>
           <span className="text-right text-emerald-200">Messi</span>

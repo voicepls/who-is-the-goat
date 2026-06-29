@@ -36,9 +36,9 @@ export default function StickyAdBanner({ slot }: StickyAdBannerProps) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 120, opacity: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 30 }}
-          className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 sm:px-4 sm:pb-4"
+          className="goat-sticky-ad fixed inset-x-0 bottom-0 z-40 px-2 pb-2 sm:px-4 sm:pb-4"
         >
-          <div className="relative mx-auto max-w-5xl rounded-xl border border-white/10 bg-night/85 p-2 shadow-2xl backdrop-blur">
+          <div className="goat-sticky-ad-shell relative mx-auto max-w-5xl rounded-lg border border-white/10 bg-night/85 p-2 shadow-2xl backdrop-blur sm:rounded-xl">
             <button
               type="button"
               onClick={dismiss}

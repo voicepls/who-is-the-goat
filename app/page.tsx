@@ -104,7 +104,7 @@ export default function Home() {
   );
 
   return (
-    <main className="goat-page relative min-h-screen overflow-hidden bg-night text-slate-50">
+    <main className="goat-page relative min-h-screen overflow-x-hidden bg-night text-slate-50">
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden">
         <motion.div
           className="absolute -left-24 top-4 h-80 w-80 rounded-full bg-ron/20 blur-3xl"
@@ -146,7 +146,7 @@ export default function Home() {
               >
                 🐐
               </motion.span>
-              <h1 className="text-4xl font-black tracking-normal text-white sm:text-5xl lg:text-6xl">
+              <h1 className="text-[clamp(2.35rem,11vw,3.75rem)] font-black leading-none tracking-normal text-white">
                 Who is the GOAT?
               </h1>
             </motion.div>
@@ -155,7 +155,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="goat-header-actions flex items-center gap-3">
             <button
               type="button"
               onClick={toggleMute}
@@ -209,12 +209,12 @@ export default function Home() {
               aria-live="polite"
               className="goat-panel rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur md:p-5"
             >
-              <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="goat-meter-head mb-4 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Live vote meter</p>
                   <h2 className="text-2xl font-black text-white">{formatNumber(total)} total votes</h2>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="goat-meter-actions flex items-center gap-2">
                   <div className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-300">
                     {isLive ? "Live · Neon" : "Demo mode"}
                   </div>
@@ -254,7 +254,7 @@ export default function Home() {
 
             <WCScores />
 
-            <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR} minHeight={250} />
+            <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR} minHeight={180} />
           </aside>
         </section>
 

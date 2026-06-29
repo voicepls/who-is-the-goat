@@ -79,23 +79,23 @@ export default function WCScores() {
           games.map((game) => (
           <div
             key={game.id}
-            className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-3"
+            className="goat-score-row grid grid-cols-[1fr_auto_1fr_auto] items-center gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-3"
           >
-            <span className="truncate text-sm font-black text-white">{game.home}</span>
-            <span className="min-w-14 rounded bg-white/10 px-2 py-1 text-center text-sm font-black tabular-nums text-white">
+            <span className="goat-score-home truncate text-sm font-black text-white">{game.home}</span>
+            <span className="goat-score-value min-w-14 rounded bg-white/10 px-2 py-1 text-center text-sm font-black tabular-nums text-white">
               {renderScore(game)}
             </span>
-            <span className="truncate text-right text-sm font-black text-white">{game.away}</span>
+            <span className="goat-score-away truncate text-right text-sm font-black text-white">{game.away}</span>
             {game.status === "LIVE" ? (
               <motion.span
                 animate={{ scale: [1, 1.08, 1], opacity: [0.82, 1, 0.82] }}
                 transition={{ repeat: Infinity, duration: 1.1, ease: "easeInOut" }}
-                className="rounded-full bg-red-500 px-2 py-1 text-[10px] font-black text-white"
+                className="goat-score-status rounded-full bg-red-500 px-2 py-1 text-[10px] font-black text-white"
               >
                 LIVE
               </motion.span>
             ) : (
-              <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-slate-300">
+              <span className="goat-score-status rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-slate-300">
                 {game.status === "FT" ? "FT" : "Soon"}
               </span>
             )}

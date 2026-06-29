@@ -18,7 +18,7 @@ const stageStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   width: "min(100%, 280px)",
-  height: "clamp(260px, 34vw, 360px)",
+  height: "clamp(220px, 34vw, 360px)",
   maxHeight: "430px",
   margin: "0 auto",
   overflow: "hidden",
