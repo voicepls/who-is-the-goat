@@ -1,179 +1,160 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MAX_AMOUNT_PER_REQUEST, SEED_COUNTS, type PlayerKey } from "@/lib/players";
 
-export type PlayerKey = "ron" | "mes";
+export type { PlayerKey };
 
 type Counts = Record<PlayerKey, number>;
 
-const BASE_COUNTS: Counts = {
-  ron: 5420,
-  mes: 4890,
-};
-
-const STORAGE_KEY = "goat_voted";
+const FLUSH_IDLE_MS = 1800;
+const FLUSH_MAX_WAIT_MS = 8000;
+const CLICK_COOLDOWN_MS = 70;
 
 function getPercentages(counts: Counts) {
   const total = counts.ron + counts.mes;
-
-  if (total === 0) {
-    return { ron: 50, mes: 50 };
-  }
-
+  if (total === 0) return { ron: 50, mes: 50 };
   const ron = (counts.ron / total) * 100;
-  const mes = 100 - ron;
-
-  return { ron, mes };
-}
-
-async function fetchPlayerCount(player: PlayerKey) {
-  if (!supabase) {
-    return 0;
-  }
-
-  const { count, error } = await supabase
-    .from("votes")
-    .select("*", { count: "exact", head: true })
-    .eq("player", player);
-
-  if (error) {
-    throw error;
-  }
-
-  return count ?? 0;
+  return { ron, mes: 100 - ron };
 }
 
 export function useVotes() {
-  const [remoteCounts, setRemoteCounts] = useState<Counts>({ ron: 0, mes: 0 });
-  const [localCounts, setLocalCounts] = useState<Counts>({ ron: 0, mes: 0 });
-  const [votedPlayer, setVotedPlayer] = useState<PlayerKey | null>(null);
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [serverTotals, setServerTotals] = useState<Counts>(SEED_COUNTS);
+  const [unsynced, setUnsynced] = useState<Counts>({ ron: 0, mes: 0 });
+  const [myVotes, setMyVotes] = useState<Counts>({ ron: 0, mes: 0 });
   const [isReady, setIsReady] = useState(false);
-  const [isVoting, setIsVoting] = useState(false);
 
-  const counts = useMemo(
-    () => ({
-      ron: BASE_COUNTS.ron + remoteCounts.ron + localCounts.ron,
-      mes: BASE_COUNTS.mes + remoteCounts.mes + localCounts.mes,
-    }),
-    [localCounts, remoteCounts],
+  const unsyncedRef = useRef<Counts>({ ron: 0, mes: 0 });
+  const enabledRef = useRef<boolean | null>(null);
+  const isFlushingRef = useRef(false);
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastClickRef = useRef(0);
+  const firstUnsentAtRef = useRef(0);
+
+  const base = enabled === false ? SEED_COUNTS : serverTotals;
+
+  const counts = useMemo<Counts>(
+    () => ({ ron: base.ron + unsynced.ron, mes: base.mes + unsynced.mes }),
+    [base, unsynced],
   );
 
   const total = counts.ron + counts.mes;
   const percentages = useMemo(() => getPercentages(counts), [counts]);
-  const hasVoted = Boolean(votedPlayer);
 
-  const refreshCounts = useCallback(async () => {
-    if (!supabase) {
-      return;
-    }
-
-    const [ron, mes] = await Promise.all([fetchPlayerCount("ron"), fetchPlayerCount("mes")]);
-    setRemoteCounts({ ron, mes });
+  const syncUnsyncedState = useCallback(() => {
+    setUnsynced({ ...unsyncedRef.current });
   }, []);
 
-  useEffect(() => {
-    const storedVote = window.localStorage.getItem(STORAGE_KEY);
+  const flush = useCallback(async () => {
+    if (enabledRef.current !== true) return;
+    if (isFlushingRef.current) return;
 
-    if (storedVote === "ron" || storedVote === "mes") {
-      setVotedPlayer(storedVote);
+    const snapshot = { ...unsyncedRef.current };
+    const players = (Object.keys(snapshot) as PlayerKey[]).filter((p) => snapshot[p] > 0);
+    if (players.length === 0) return;
+
+    isFlushingRef.current = true;
+    try {
+      for (const player of players) {
+        const amount = Math.min(snapshot[player], MAX_AMOUNT_PER_REQUEST);
+        const response = await fetch("/api/votes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ player, amount }),
+        });
+        if (!response.ok) throw new Error(`vote failed: ${response.status}`);
+
+        const data = (await response.json()) as { enabled: boolean; totals: Counts };
+        setEnabled(data.enabled);
+        enabledRef.current = data.enabled;
+        setServerTotals(data.totals);
+
+        unsyncedRef.current[player] = Math.max(0, unsyncedRef.current[player] - amount);
+        syncUnsyncedState();
+      }
+    } catch (error) {
+      console.error("flush votes failed", error);
+    } finally {
+      isFlushingRef.current = false;
+      if (unsyncedRef.current.ron + unsyncedRef.current.mes > 0) {
+        scheduleFlush();
+      } else {
+        firstUnsentAtRef.current = 0;
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncUnsyncedState]);
 
-    setIsReady(true);
-  }, []);
+  const scheduleFlush = useCallback(() => {
+    if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+    const firstAt = firstUnsentAtRef.current || Date.now();
+    const elapsed = Date.now() - firstAt;
+    const wait = Math.max(0, Math.min(FLUSH_IDLE_MS, FLUSH_MAX_WAIT_MS - elapsed));
+    flushTimerRef.current = setTimeout(() => {
+      flush();
+    }, wait);
+  }, [flush]);
 
   useEffect(() => {
     let cancelled = false;
 
-    const hydrateCounts = async () => {
+    const pull = async () => {
       try {
-        await refreshCounts();
-      } catch {
-        if (!cancelled) {
-          setRemoteCounts({ ron: 0, mes: 0 });
+        const response = await fetch("/api/votes", { cache: "no-store" });
+        if (!response.ok) throw new Error(`status ${response.status}`);
+        const data = (await response.json()) as { enabled: boolean; totals: Counts };
+        if (cancelled) return;
+        setEnabled(data.enabled);
+        enabledRef.current = data.enabled;
+        if (data.enabled && !isFlushingRef.current) {
+          setServerTotals(data.totals);
         }
+      } catch {
+        if (cancelled) return;
+        setEnabled(false);
+        enabledRef.current = false;
+      } finally {
+        if (!cancelled) setIsReady(true);
       }
     };
 
-    hydrateCounts();
-
+    pull();
     return () => {
       cancelled = true;
+      if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     };
-  }, [refreshCounts]);
-
-  useEffect(() => {
-    if (!supabase) {
-      return;
-    }
-
-    const client = supabase;
-    const channel = client
-      .channel("goat-votes")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "votes" },
-        () => {
-          refreshCounts().catch(() => undefined);
-        },
-      )
-      .subscribe();
-
-    return () => {
-      client.removeChannel(channel);
-    };
-  }, [refreshCounts]);
+  }, []);
 
   const vote = useCallback(
-    async (player: PlayerKey) => {
-      if (!isReady || isVoting || votedPlayer) {
-        return false;
+    (player: PlayerKey) => {
+      if (!isReady) return false;
+
+      const now = Date.now();
+      if (now - lastClickRef.current < CLICK_COOLDOWN_MS) return false;
+      lastClickRef.current = now;
+
+      unsyncedRef.current[player] += 1;
+      if (firstUnsentAtRef.current === 0) firstUnsentAtRef.current = now;
+      syncUnsyncedState();
+      setMyVotes((current) => ({ ...current, [player]: current[player] + 1 }));
+
+      if (enabledRef.current !== false) {
+        scheduleFlush();
       }
-
-      setIsVoting(true);
-
-      try {
-        if (supabase) {
-          const { error } = await supabase.from("votes").insert({ player });
-
-          if (error) {
-            throw error;
-          }
-
-          await refreshCounts();
-        } else {
-          setLocalCounts((current) => ({
-            ...current,
-            [player]: current[player] + 1,
-          }));
-        }
-
-        window.localStorage.setItem(STORAGE_KEY, player);
-        setVotedPlayer(player);
-        return true;
-      } catch {
-        setLocalCounts((current) => ({
-          ...current,
-          [player]: current[player] + 1,
-        }));
-        window.localStorage.setItem(STORAGE_KEY, player);
-        setVotedPlayer(player);
-        return true;
-      } finally {
-        setIsVoting(false);
-      }
+      return true;
     },
-    [isReady, isVoting, refreshCounts, votedPlayer],
+    [isReady, scheduleFlush, syncUnsyncedState],
   );
 
   return {
     counts,
-    hasVoted,
-    isReady,
-    isVoting,
     percentages,
     total,
+    myVotes,
+    myVoteTotal: myVotes.ron + myVotes.mes,
+    isReady,
+    isLive: enabled === true,
     vote,
-    votedPlayer,
   };
 }
