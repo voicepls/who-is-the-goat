@@ -1,8 +1,8 @@
 export type PlayerKey = "ron" | "mes";
 
 export const SEED_COUNTS: Record<PlayerKey, number> = {
-  ron: 5420,
-  mes: 4890,
+  ron: 0,
+  mes: 0,
 };
 
 export const MAX_AMOUNT_PER_REQUEST = 1000;

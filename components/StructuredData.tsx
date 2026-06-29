@@ -1,13 +1,11 @@
-import { getScores, type ScoreStatus } from "@/lib/scores";
+import { MOCK_GAMES, type ScoreStatus } from "@/lib/scores";
 import { SITE_URL } from "@/lib/site";
 
 function eventStatus(status: ScoreStatus) {
   return status === "FT" ? "https://schema.org/EventCompleted" : "https://schema.org/EventScheduled";
 }
 
-export default async function StructuredData() {
-  const { games } = await getScores();
-
+export default function StructuredData() {
   const webPageLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -50,8 +48,8 @@ export default async function StructuredData() {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: "Soccer Scores Today — FIFA World Cup 2026",
-    numberOfItems: games.length,
-    itemListElement: games.map((game, index) => ({
+    numberOfItems: MOCK_GAMES.length,
+    itemListElement: MOCK_GAMES.map((game, index) => ({
       "@type": "ListItem",
       position: index + 1,
       item: {

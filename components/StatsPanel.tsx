@@ -8,36 +8,49 @@ type Stat = {
   ron: number;
   mes: number;
   decimals?: number;
+  prefix?: string;
+  suffix?: string;
 };
 
 const STATS: Stat[] = [
-  { label: "Career goals", ron: 975, mes: 916 },
-  { label: "Career appearances", ron: 1327, mes: 1158 },
-  { label: "Goals per game", ron: 0.73, mes: 0.79, decimals: 2 },
+  { label: "Club goals", ron: 739, mes: 727 },
+  { label: "International goals", ron: 137, mes: 112 },
   { label: "Ballon d'Or", ron: 5, mes: 8 },
-  { label: "Champions League", ron: 5, mes: 4 },
   { label: "World Cup titles", ron: 0, mes: 1 },
+  { label: "Estimated 2024 earnings", ron: 260, mes: 150, prefix: "$", suffix: "M" },
 ];
 
-function CountUp({ value, decimals = 0 }: { value: number; decimals?: number }) {
+function CountUp({
+  value,
+  decimals = 0,
+  prefix = "",
+  suffix = "",
+}: {
+  value: number;
+  decimals?: number;
+  prefix?: string;
+  suffix?: string;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
-  const [display, setDisplay] = useState(0);
+  const [display, setDisplay] = useState(value);
+  const startRef = useRef(value);
 
   useEffect(() => {
     if (!inView) return;
-    const controls = animate(0, value, {
+    const controls = animate(startRef.current, value, {
       duration: 1.1,
       ease: "easeOut",
       onUpdate: (v) => setDisplay(v),
     });
+    startRef.current = value;
     return () => controls.stop();
   }, [inView, value]);
 
   const formatted =
     decimals > 0 ? display.toFixed(decimals) : Math.round(display).toLocaleString("en-US");
 
-  return <span ref={ref}>{formatted}</span>;
+  return <span ref={ref}>{`${prefix}${formatted}${suffix}`}</span>;
 }
 
 function StatRow({ stat, index }: { stat: Stat; index: number }) {
@@ -61,14 +74,14 @@ function StatRow({ stat, index }: { stat: Stat; index: number }) {
             ronLeads ? "text-blue-300" : "text-white"
           }`}
         >
-          <CountUp value={stat.ron} decimals={stat.decimals} />
+          <CountUp value={stat.ron} decimals={stat.decimals} prefix={stat.prefix} suffix={stat.suffix} />
         </span>
         <span
           className={`text-right text-lg font-black tabular-nums transition-colors ${
             mesLeads ? "text-emerald-300" : "text-white"
           }`}
         >
-          <CountUp value={stat.mes} decimals={stat.decimals} />
+          <CountUp value={stat.mes} decimals={stat.decimals} prefix={stat.prefix} suffix={stat.suffix} />
         </span>
       </div>
 
@@ -95,10 +108,10 @@ export default function StatsPanel() {
         viewport={{ once: true, margin: "-40px" }}
         transition={{ duration: 0.5 }}
       >
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Career receipts</p>
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Career stats</p>
         <h2 className="mt-1 text-2xl font-black text-white">Numbers for the group chat</h2>
         <p className="mt-2 max-w-sm text-sm text-slate-400">
-          All-time totals as of the 2026 World Cup. The bar shows who leads each line.
+          Hardcoded headline numbers for the debate. The bar shows who leads each line.
         </p>
       </motion.div>
 

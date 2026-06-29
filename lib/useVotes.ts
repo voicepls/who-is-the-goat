@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MAX_AMOUNT_PER_REQUEST, SEED_COUNTS, type PlayerKey } from "@/lib/players";
+import {
+  MAX_AMOUNT_PER_REQUEST,
+  SEED_COUNTS,
+  type PlayerKey,
+} from "@/lib/players";
 
 export type { PlayerKey };
 
@@ -10,12 +14,44 @@ type Counts = Record<PlayerKey, number>;
 const FLUSH_IDLE_MS = 1800;
 const FLUSH_MAX_WAIT_MS = 8000;
 const CLICK_COOLDOWN_MS = 70;
+const POLL_MS = 2500;
+const LOCAL_VOTES_KEY = "goat_demo_votes";
 
 function getPercentages(counts: Counts) {
   const total = counts.ron + counts.mes;
   if (total === 0) return { ron: 50, mes: 50 };
   const ron = (counts.ron / total) * 100;
   return { ron, mes: 100 - ron };
+}
+
+function readLocalVotes(): Counts {
+  try {
+    const raw = window.localStorage.getItem(LOCAL_VOTES_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Partial<Counts>) : {};
+
+    return {
+      ron: Math.max(0, Number(parsed.ron) || 0),
+      mes: Math.max(0, Number(parsed.mes) || 0),
+    };
+  } catch {
+    return { ron: 0, mes: 0 };
+  }
+}
+
+function writeLocalVotes(counts: Counts) {
+  try {
+    window.localStorage.setItem(LOCAL_VOTES_KEY, JSON.stringify(counts));
+  } catch {
+    // Ignore storage failures; the in-memory vote still updates immediately.
+  }
+}
+
+function clearLocalVotes() {
+  try {
+    window.localStorage.removeItem(LOCAL_VOTES_KEY);
+  } catch {
+    // Ignore storage failures; reset still updates the in-memory UI.
+  }
 }
 
 export function useVotes() {
@@ -44,6 +80,24 @@ export function useVotes() {
 
   const syncUnsyncedState = useCallback(() => {
     setUnsynced({ ...unsyncedRef.current });
+  }, []);
+
+  const clearPendingVotes = useCallback(() => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+    firstUnsentAtRef.current = 0;
+    unsyncedRef.current = { ron: 0, mes: 0 };
+    setUnsynced({ ron: 0, mes: 0 });
+    setMyVotes({ ron: 0, mes: 0 });
+  }, []);
+
+  const enableLocalDemoMode = useCallback(() => {
+    const storedVotes = readLocalVotes();
+    unsyncedRef.current = storedVotes;
+    setUnsynced(storedVotes);
+    setMyVotes(storedVotes);
   }, []);
 
   const flush = useCallback(async () => {
@@ -109,22 +163,28 @@ export function useVotes() {
         enabledRef.current = data.enabled;
         if (data.enabled && !isFlushingRef.current) {
           setServerTotals(data.totals);
+        } else if (!data.enabled) {
+          enableLocalDemoMode();
         }
       } catch {
         if (cancelled) return;
         setEnabled(false);
         enabledRef.current = false;
+        enableLocalDemoMode();
       } finally {
         if (!cancelled) setIsReady(true);
       }
     };
 
     pull();
+    const timer = window.setInterval(pull, POLL_MS);
+
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     };
-  }, []);
+  }, [enableLocalDemoMode]);
 
   const vote = useCallback(
     (player: PlayerKey) => {
@@ -141,11 +201,32 @@ export function useVotes() {
 
       if (enabledRef.current !== false) {
         scheduleFlush();
+      } else {
+        writeLocalVotes(unsyncedRef.current);
       }
       return true;
     },
     [isReady, scheduleFlush, syncUnsyncedState],
   );
+
+  const resetVotes = useCallback(async () => {
+    try {
+      const response = await fetch("/api/votes", { method: "DELETE" });
+      if (!response.ok) return false;
+
+      const data = (await response.json()) as { enabled: boolean; totals: Counts };
+      clearPendingVotes();
+      clearLocalVotes();
+      setEnabled(data.enabled);
+      enabledRef.current = data.enabled;
+      setServerTotals(data.totals ?? SEED_COUNTS);
+      setIsReady(true);
+      return true;
+    } catch (error) {
+      console.error("reset votes failed", error);
+      return false;
+    }
+  }, [clearPendingVotes]);
 
   return {
     counts,
@@ -156,5 +237,6 @@ export function useVotes() {
     isReady,
     isLive: enabled === true,
     vote,
+    resetVotes,
   };
 }

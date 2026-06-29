@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
-import { isPlayerKey, MAX_AMOUNT_PER_REQUEST, type PlayerKey } from "@/lib/players";
+import { isPlayerKey, MAX_AMOUNT_PER_REQUEST, SEED_COUNTS, type PlayerKey } from "@/lib/players";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -71,5 +71,45 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("POST /api/votes failed", error);
     return NextResponse.json({ error: "Failed to record vote" }, { status: 500 });
+  }
+}
+
+function canResetVotes(request: Request) {
+  const token = process.env.VOTE_RESET_TOKEN;
+
+  const hostname = new URL(request.url).hostname;
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+
+  if (!token) {
+    return process.env.NODE_ENV !== "production" || isLocalhost;
+  }
+
+  const auth = request.headers.get("authorization");
+  const urlToken = new URL(request.url).searchParams.get("token");
+  return auth === `Bearer ${token}` || urlToken === token;
+}
+
+export async function DELETE(request: Request) {
+  if (!canResetVotes(request)) {
+    return NextResponse.json({ error: "Reset not allowed" }, { status: 403 });
+  }
+
+  if (!sql) {
+    return NextResponse.json({ enabled: false, totals: SEED_COUNTS });
+  }
+
+  try {
+    await ensureSchema();
+    await sql`
+      insert into vote_totals (player, count)
+      values ('ron', ${SEED_COUNTS.ron}), ('mes', ${SEED_COUNTS.mes})
+      on conflict (player) do update set count = excluded.count
+    `;
+
+    const totals = await readTotals();
+    return NextResponse.json({ enabled: true, totals });
+  } catch (error) {
+    console.error("DELETE /api/votes failed", error);
+    return NextResponse.json({ error: "Failed to reset votes" }, { status: 500 });
   }
 }

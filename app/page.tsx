@@ -2,22 +2,16 @@
 
 import confetti from "canvas-confetti";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import AdSlot from "@/components/AdSlot";
 import ImageAvatar from "@/components/ImageAvatar";
-import MessiAvatar from "@/components/MessiAvatar";
 import PlayerCard from "@/components/PlayerCard";
-import RonaldoAvatar from "@/components/RonaldoAvatar";
 import StatsPanel from "@/components/StatsPanel";
 import VoteBar from "@/components/VoteBar";
 import WCScores from "@/components/WCScores";
+import { getPlayerAvatarImage } from "@/lib/avatarImages";
 import { useSound } from "@/lib/useSound";
 import { PlayerKey, useVotes } from "@/lib/useVotes";
-
-const RON_AVATAR = process.env.NEXT_PUBLIC_RON_AVATAR;
-const RON_AVATAR_SAD = process.env.NEXT_PUBLIC_RON_AVATAR_SAD;
-const MES_AVATAR = process.env.NEXT_PUBLIC_MES_AVATAR;
-const MES_AVATAR_SAD = process.env.NEXT_PUBLIC_MES_AVATAR_SAD;
 
 function getReactionCopy(ronaldoPercent: number, messiPercent: number) {
   const diff = ronaldoPercent - messiPercent;
@@ -38,17 +32,31 @@ function formatNumber(value: number) {
 }
 
 export default function Home() {
-  const { counts, total, percentages, myVoteTotal, isReady, isLive, vote } = useVotes();
+  const {
+    counts,
+    total,
+    percentages,
+    myVoteTotal,
+    isReady,
+    isLive,
+    vote,
+    resetVotes,
+  } = useVotes();
   const { play, muted, toggleMute } = useSound();
   const reduceMotion = useReducedMotion();
+  const [resetMessage, setResetMessage] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
   const reactionCopy = getReactionCopy(percentages.ron, percentages.mes);
   const lastConfettiRef = useRef(0);
 
   const ronaldoMood = percentages.ron - percentages.mes;
   const messiMood = -ronaldoMood;
+  const ronaldoImage = getPlayerAvatarImage("ron", percentages.ron, percentages.mes);
+  const messiImage = getPlayerAvatarImage("mes", percentages.mes, percentages.ron);
 
   const submitVote = (player: PlayerKey) => {
     if (!vote(player)) return;
+    if (resetMessage) setResetMessage("");
     play(player);
     if (reduceMotion) return;
 
@@ -68,20 +76,35 @@ export default function Home() {
     }
   };
 
-  const ronAvatar = RON_AVATAR ? (
-    <ImageAvatar src={RON_AVATAR} sadSrc={RON_AVATAR_SAD || undefined} mood={ronaldoMood} alt="Cristiano Ronaldo avatar" winEmoji="🔥" />
-  ) : (
-    <RonaldoAvatar mood={ronaldoMood} />
+  const submitReset = async () => {
+    if (isResetting) return;
+    setIsResetting(true);
+    setResetMessage("Resetting votes...");
+    const ok = await resetVotes();
+    setResetMessage(ok ? "Votes reset. Pick your GOAT again." : "Reset failed. Add the reset token in production.");
+    setIsResetting(false);
+  };
+
+  const ronAvatar = (
+    <ImageAvatar
+      src={ronaldoImage.src}
+      mood={ronaldoMood}
+      alt={`Cristiano Ronaldo ${ronaldoImage.level}% ${ronaldoImage.emotion} avatar`}
+      winEmoji="🔥"
+    />
   );
 
-  const mesAvatar = MES_AVATAR ? (
-    <ImageAvatar src={MES_AVATAR} sadSrc={MES_AVATAR_SAD || undefined} mood={messiMood} alt="Lionel Messi avatar" winEmoji="🐐" />
-  ) : (
-    <MessiAvatar mood={messiMood} />
+  const mesAvatar = (
+    <ImageAvatar
+      src={messiImage.src}
+      mood={messiMood}
+      alt={`Lionel Messi ${messiImage.level}% ${messiImage.emotion} avatar`}
+      winEmoji="🐐"
+    />
   );
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-night text-slate-50">
+    <main className="goat-page relative min-h-screen overflow-hidden bg-night text-slate-50">
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden">
         <motion.div
           className="absolute -left-24 top-4 h-80 w-80 rounded-full bg-ron/20 blur-3xl"
@@ -106,8 +129,8 @@ export default function Home() {
         ))}
       </div>
 
-      <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 pb-28 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
+      <section className="goat-shell relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 pb-28 sm:px-6 lg:px-8">
+        <header className="goat-header flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <motion.div
               initial={{ opacity: 0, y: -12 }}
@@ -156,8 +179,8 @@ export default function Home() {
           </div>
         </header>
 
-        <section className="grid flex-1 items-center gap-6 py-7 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.86fr)]">
-          <div className="grid min-h-[620px] gap-4 lg:grid-cols-2">
+        <section className="goat-main-grid grid flex-1 items-center gap-6 py-7 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.86fr)]">
+          <div className="goat-player-grid grid min-h-[620px] gap-4 lg:grid-cols-2">
             <PlayerCard
               player="ron"
               name="Cristiano Ronaldo"
@@ -165,6 +188,7 @@ export default function Home() {
               votes={formatNumber(counts.ron)}
               avatar={ronAvatar}
               disabled={!isReady}
+              ctaLabel="Vote Cristiano"
               onVote={() => submitVote("ron")}
             />
             <PlayerCard
@@ -174,23 +198,34 @@ export default function Home() {
               votes={formatNumber(counts.mes)}
               avatar={mesAvatar}
               disabled={!isReady}
+              ctaLabel="Vote Lionel"
               onVote={() => submitVote("mes")}
             />
           </div>
 
-          <aside className="flex flex-col gap-4">
+          <aside className="goat-sidebar flex flex-col gap-4">
             <section
               role="status"
               aria-live="polite"
-              className="rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur md:p-5"
+              className="goat-panel rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur md:p-5"
             >
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Live vote meter</p>
                   <h2 className="text-2xl font-black text-white">{formatNumber(total)} total votes</h2>
                 </div>
-                <div className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-300">
-                  {isLive ? "Live · Neon" : "Demo mode"}
+                <div className="flex items-center gap-2">
+                  <div className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-300">
+                    {isLive ? "Live · Neon" : "Demo mode"}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={submitReset}
+                    disabled={!isReady || isResetting}
+                    className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-black text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isResetting ? "Resetting" : "Reset"}
+                  </button>
                 </div>
               </div>
 
@@ -210,9 +245,10 @@ export default function Home() {
               </AnimatePresence>
 
               <p className="mt-3 text-center text-xs font-bold text-slate-400">
-                {myVoteTotal > 0
-                  ? `You've hyped ${formatNumber(myVoteTotal)} time${myVoteTotal === 1 ? "" : "s"} — keep tapping! 👆`
-                  : "Tap a player as many times as you want 👆"}
+                {resetMessage ||
+                  (myVoteTotal > 0
+                    ? `You've hyped ${formatNumber(myVoteTotal)} time${myVoteTotal === 1 ? "" : "s"} — keep tapping!`
+                    : "Tap a player as many times as you want")}
               </p>
             </section>
 

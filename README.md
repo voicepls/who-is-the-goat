@@ -1,6 +1,6 @@
 # Who is the GOAT?
 
-A playful live voting arena for the eternal Ronaldo vs Messi debate, themed around FIFA World Cup 2026. Tap as many times as you like to hype your player — the loser visibly slumps, trembles, and cries harder the further behind they fall.
+A playful live voting arena for the eternal Ronaldo vs Messi debate, themed around FIFA World Cup 2026. Visitors can vote as many times as they want — the loser visibly slumps, trembles, and cries harder the further behind they fall.
 
 ## Run locally
 
@@ -18,7 +18,9 @@ The app runs with **zero configuration** — no database or API keys required. W
 Copy `.env.example` to `.env.local` and fill in what you need:
 
 ```bash
-DATABASE_URL=                     # Neon Postgres — enables shared, persisted live voting
+DATABASE_URL=                     # Neon Postgres - enables shared, persisted live voting
+VOTE_RESET_TOKEN=                 # optional, protects production vote resets
+SPORTSDATA_API_KEY=               # optional primary live score API - SportsData.io GamesByDate
 THESPORTSDB_KEY=                  # optional, defaults to free public key "3"
 NEXT_PUBLIC_ADSENSE_CLIENT=       # optional, ca-pub-XXXXXXXXXXXXXXXX
 NEXT_PUBLIC_ADSENSE_SLOT_BANNER=  # optional, sticky banner ad slot id
@@ -27,8 +29,8 @@ NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR= # optional, sidebar ad slot id
 
 ## Voting & the database (Neon)
 
-- **Unlimited hype-clicking.** Every tap is `+1`. A light client cooldown (~14 clicks/sec) curbs auto-fire and the API caps each request at 1000.
-- **No DB call per click (scales to mashing).** Clicks increment the UI instantly and accumulate locally. The write is **idle-debounced**: it only fires ~1.8s after you *stop* clicking, so a 1000-click burst becomes **one** `UPDATE`. A hard ceiling (`FLUSH_MAX_WAIT_MS`, 8s) forces a sync during non-stop mashing so others still see progress. Net effect: roughly one DB write per user per burst, not per click.
+- **Unlimited hype-clicking.** Every tap is `+1`. A light client cooldown keeps accidental double-fires under control while still letting fans spam votes.
+- **Optimistic batched writes.** The selected player increments immediately in the UI, then syncs to Neon with a small idle debounce so the page feels instant and avoids one DB write per tap.
 - **Concurrency-safe counts.** Each write is an atomic `UPDATE … SET count = count + n` on a single row, which Postgres serialises with a row lock. Many users writing at once each apply their delta with no lost updates (verified: 40 concurrent writes → exactly +40).
 - **Live across browsers.** Clients optimistically show their own taps instantly and poll `/api/votes` every ~2.5s to pull in everyone else's.
 - **Going further.** For truly extreme write volume, batch server-side too: buffer deltas in memory or Redis and flush to Postgres on an interval. The client contract (`POST /api/votes { player, amount }`) stays the same.
@@ -42,36 +44,36 @@ create table if not exists vote_totals (
 );
 
 insert into vote_totals (player, count)
-values ('ron', 5420), ('mes', 4890)
+values ('ron', 0), ('mes', 0)
 on conflict (player) do nothing;
 ```
 
 Without `DATABASE_URL` the app falls back to local-only counting (your votes, this browser).
+To reset live Neon totals back to `0 - 0`, call `DELETE /api/votes`. In production, set
+`VOTE_RESET_TOKEN` and send it as `Authorization: Bearer <token>`.
 
 ## Live World Cup scores
 
-`/api/scores` fetches soccer fixtures server-side from [TheSportsDB](https://www.thesportsdb.com/) (free public key `3`). It looks back over the last few days and always surfaces the most recent **finished results with real scores** first, then live games, then upcoming fixtures (with kickoff times) — World Cup matches prioritized — so the panel is never empty even when today's games haven't kicked off. Falls back to sample games if the upstream request fails. Set `THESPORTSDB_KEY` to use your own key.
+`/api/scores?date=YYYY-MM-DD` fetches soccer fixtures server-side for the browser's current day. It prefers SportsData.io's `GamesByDate` endpoint when `SPORTSDATA_API_KEY` is set, then falls back to [TheSportsDB](https://www.thesportsdb.com/) (free public key `3`). The sidebar refreshes every 60 seconds and shows LIVE, FT, or Upcoming states. If both upstream calls fail, it falls back to sample games.
 
 ## Player stats
 
-Career numbers in the stats panel are hardcoded all-time totals as of the 2026 World Cup (not live). Sources: [messivsronaldo.app](https://www.messivsronaldo.app/) and [messixronaldo.com](https://messixronaldo.com/).
+Career numbers in the stats panel are hardcoded from the project brief: club goals, international goals, Ballon d'Ors, World Cup titles, and estimated 2024 earnings.
 
 ## Sounds
 
-Voting plays a short sound — a triumphant arpeggio synthesized in the browser, so
-**audio works with no files**. To use real clips (e.g. a "SUIII" for Ronaldo),
-drop `ron.mp3` / `mes.mp3` into `public/sounds/` — they override the synth
-automatically. A 🔊/🔇 toggle in the header mutes everything (remembered per browser).
+Voting plays the meme MP3 clips in `public/sounds/ron.mp3` and
+`public/sounds/mes.mp3`. If either file is missing, the app falls back to a
+short synthesized sound. A 🔊/🔇 toggle in the header mutes everything (remembered per browser).
 Playback is throttled so rapid mashing never machine-guns the audio.
 
 ## Avatars
 
-By default the avatars are hand-drawn animated SVGs whose faces morph with the vote.
-To use illustration files instead (PNG/SVG, e.g. from Flaticon), drop them in
-`public/avatars/` and set `NEXT_PUBLIC_RON_AVATAR` / `NEXT_PUBLIC_MES_AVATAR` (with
-optional `*_SAD` variants to crossfade faces). See [public/avatars/README.md](public/avatars/README.md)
-for details and licensing notes. With a flat image, "crying" is layered on as
-body motion + teardrops + a sad filter rather than facial morphing.
+The player cards use the supplied image ladders in `public/avatars/ronaldo/` and
+`public/avatars/messi/`: `happy-20/40/60/80/100` and `sad-20/40/60/80/100`.
+When the vote is close, both players show `happy-20`. Once a player leads, the
+leader's percentage picks the intensity: a 60% Ronaldo lead shows Ronaldo's
+`happy-60` and Messi's `sad-60`.
 
 ## SEO
 

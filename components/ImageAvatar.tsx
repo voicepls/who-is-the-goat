@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import type { CSSProperties } from "react";
 import { getAvatarMotion } from "@/lib/avatarMotion";
 
 type ImageAvatarProps = {
@@ -9,6 +10,27 @@ type ImageAvatarProps = {
   mood: number;
   alt: string;
   winEmoji?: string;
+};
+
+const stageStyle: CSSProperties = {
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "min(100%, 280px)",
+  height: "clamp(260px, 34vw, 360px)",
+  maxHeight: "430px",
+  margin: "0 auto",
+  overflow: "hidden",
+};
+
+const imageStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  objectFit: "contain",
+  userSelect: "none",
 };
 
 export default function ImageAvatar({ src, sadSrc, mood, alt, winEmoji = "🔥" }: ImageAvatarProps) {
@@ -26,15 +48,17 @@ export default function ImageAvatar({ src, sadSrc, mood, alt, winEmoji = "🔥" 
   const tearDuration = Math.max(0.85, 1.7 - m.magnitude);
 
   return (
-    <div className="relative flex h-full max-h-[430px] w-full max-w-[300px] items-center justify-center">
-      <motion.div animate={m.body} className="relative h-full w-full">
+    <div className="goat-image-avatar relative flex h-full max-h-[430px] w-full max-w-[300px] items-center justify-center" style={stageStyle}>
+      <motion.div animate={m.body} className="goat-image-avatar-inner relative h-full w-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt={alt}
           draggable={false}
-          className="absolute inset-0 h-full w-full select-none object-contain"
-          style={{ filter: sadSrc ? "none" : filter }}
+          width={1254}
+          height={1254}
+          className="goat-image-avatar-img absolute inset-0 h-full w-full select-none object-contain"
+          style={{ ...imageStyle, filter: sadSrc ? "none" : filter }}
         />
 
         {sadSrc && (
@@ -43,7 +67,10 @@ export default function ImageAvatar({ src, sadSrc, mood, alt, winEmoji = "🔥" 
             alt=""
             aria-hidden="true"
             draggable={false}
+            width={1254}
+            height={1254}
             className="absolute inset-0 h-full w-full select-none object-contain"
+            style={imageStyle}
             animate={{ opacity: sadness }}
             transition={{ duration: 0.4 }}
           />
