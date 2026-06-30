@@ -1,3 +1,5 @@
+import { ensureSchema, sql } from "@/lib/db";
+
 export type ScoreStatus = "LIVE" | "FT" | "Upcoming";
 
 export type ScoreGame = {
@@ -12,7 +14,7 @@ export type ScoreGame = {
 };
 
 export type ScoresResult = {
-  source: "sportsdata" | "thesportsdb" | "mock";
+  source: "sportsdata" | "thesportsdb" | "footballdata" | "mock";
   date: string;
   games: ScoreGame[];
 };
@@ -27,94 +29,39 @@ export const MOCK_GAMES: ScoreGame[] = [
   { id: "mock-3", home: "Algeria", away: "Austria", homeScore: null, awayScore: null, status: "Upcoming", league: "FIFA World Cup 2026", kickoff: null },
 ];
 
-type SportsDbEvent = {
-  idEvent?: string;
-  strHomeTeam?: string;
-  strAwayTeam?: string;
-  intHomeScore?: string | number | null;
-  intAwayScore?: string | number | null;
-  strStatus?: string;
-  strProgress?: string;
-  strLeague?: string;
-  strTimestamp?: string;
-  dateEvent?: string;
-  strTime?: string;
+type FootballDataMatch = {
+  id: number;
+  utcDate: string;
+  status: string;
+  competition?: { name: string };
+  homeTeam: { name: string; shortName?: string };
+  awayTeam: { name: string; shortName?: string };
+  score: {
+    fullTime: {
+      home: number | null;
+      away: number | null;
+    };
+  };
 };
 
-type UnknownRecord = Record<string, unknown>;
 
-function normalizeStatus(rawStatus: unknown): ScoreStatus {
-  const status = String(rawStatus ?? "").toLowerCase();
-  if (
-    ["inprogress", "in progress", "progress", "live", "1h", "2h", "ht", "halftime", "et"].some((s) =>
-      status.includes(s),
-    )
-  ) {
-    return "LIVE";
-  }
-  if (
-    ["final", "full time", "ft", "match finished", "aet", "complete", "closed"].some((s) =>
-      status.includes(s),
-    )
-  ) {
-    return "FT";
-  }
+function normalizeFDStatus(status: string): ScoreStatus {
+  const s = status.toUpperCase();
+  if (s === "IN_PLAY" || s === "PAUSED") return "LIVE";
+  if (s === "FINISHED") return "FT";
   return "Upcoming";
 }
 
-function toNumber(value: unknown): number | null {
-  if (typeof value === "number") return value;
-  if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
-    return Number(value);
-  }
-  return null;
-}
-
-function toKickoff(event: SportsDbEvent): string | null {
-  if (event.strTimestamp) return event.strTimestamp;
-  if (event.dateEvent && event.strTime) return `${event.dateEvent}T${event.strTime}Z`;
-  if (event.dateEvent) return event.dateEvent;
-  return null;
-}
-
-function valueFrom(record: UnknownRecord, keys: string[]) {
-  for (const key of keys) {
-    const value = record[key];
-    if (value !== undefined && value !== null && String(value).trim() !== "") return value;
-  }
-  return null;
-}
-
-function stringFrom(record: UnknownRecord, keys: string[]): string {
-  const value = valueFrom(record, keys);
-  return value === null ? "" : String(value).trim();
-}
-
-function numberFrom(record: UnknownRecord, keys: string[]): number | null {
-  return toNumber(valueFrom(record, keys));
-}
-
-function leagueRank(league: string): number {
-  return /world cup/i.test(league) ? 0 : 1;
-}
-
-function hasScore(game: ScoreGame): boolean {
-  return game.homeScore !== null && game.awayScore !== null;
-}
-
-function toGame(event: SportsDbEvent, index: number): ScoreGame {
-  const status = normalizeStatus(event.strStatus ?? event.strProgress);
-  const homeScore = toNumber(event.intHomeScore);
-  const awayScore = toNumber(event.intAwayScore);
+function toFDGame(m: FootballDataMatch): ScoreGame {
   return {
-    id: String(event.idEvent ?? `sdb-${index}`),
-    home: event.strHomeTeam?.trim() || "Home",
-    away: event.strAwayTeam?.trim() || "Away",
-    homeScore,
-    awayScore,
-    status: status === "Upcoming" && homeScore !== null && awayScore !== null ? "FT" : status,
-    league: event.strLeague?.trim() || "Soccer",
-    kickoff: toKickoff(event),
+    id: `fd-${m.id}`,
+    home: m.homeTeam.shortName || m.homeTeam.name || "Home",
+    away: m.awayTeam.shortName || m.awayTeam.name || "Away",
+    homeScore: m.score.fullTime.home,
+    awayScore: m.score.fullTime.away,
+    status: normalizeFDStatus(m.status),
+    league: m.competition?.name || "Soccer",
+    kickoff: m.utcDate,
   };
 }
 
@@ -136,60 +83,19 @@ function kickoffTime(game: ScoreGame): number {
   return game.kickoff ? Date.parse(game.kickoff) : 0;
 }
 
+function leagueRank(league: string): number {
+  return /world cup/i.test(league) ? 0 : 1;
+}
+
+function hasScore(game: ScoreGame): boolean {
+  return game.homeScore !== null && game.awayScore !== null;
+}
+
 function byLeagueThen(timeCompare: (a: ScoreGame, b: ScoreGame) => number) {
   return (a: ScoreGame, b: ScoreGame) => {
     const byLeague = leagueRank(a.league) - leagueRank(b.league);
     return byLeague !== 0 ? byLeague : timeCompare(a, b);
   };
-}
-
-function toSportsDataGame(game: UnknownRecord, index: number): ScoreGame {
-  const homeScore = numberFrom(game, ["HomeTeamScore", "HomeScore", "HomeTeamGoals", "ScoreHome"]);
-  const awayScore = numberFrom(game, ["AwayTeamScore", "AwayScore", "AwayTeamGoals", "ScoreAway"]);
-  const isClosed = valueFrom(game, ["IsClosed"]) === true;
-  const status = normalizeStatus(
-    valueFrom(game, ["Status", "GameStatus", "GameStatusName", "StatusName"]) ?? (isClosed ? "Final" : null),
-  );
-
-  return {
-    id: stringFrom(game, ["GameId", "GlobalGameId", "FixtureId", "Id"]) || `sportsdata-${index}`,
-    home: stringFrom(game, ["HomeTeamName", "HomeTeam", "HomeTeamKey", "Home"]) || "Home",
-    away: stringFrom(game, ["AwayTeamName", "AwayTeam", "AwayTeamKey", "Away"]) || "Away",
-    homeScore,
-    awayScore,
-    status: status === "Upcoming" && (isClosed || (homeScore !== null && awayScore !== null)) ? "FT" : status,
-    league: stringFrom(game, ["CompetitionName", "Competition", "LeagueName", "League"]) || "FIFA World Cup 2026",
-    kickoff: stringFrom(game, ["DateTime", "DateTimeUtc", "DateTimeUTC", "Day"]) || null,
-  };
-}
-
-async function fetchSportsDataDay(date: string): Promise<ScoreGame[]> {
-  const key =
-    process.env.SPORTSDATA_API_KEY ||
-    process.env.SPORTS_DATA_API_KEY ||
-    process.env.SPORTSDATAIO_KEY;
-
-  if (!key) return [];
-
-  const url = `https://api.sportsdata.io/v4/soccer/scores/json/GamesByDate/${date}?key=${encodeURIComponent(
-    key,
-  )}`;
-  const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5000) });
-  if (!response.ok) return [];
-  const payload = (await response.json()) as unknown;
-  if (!Array.isArray(payload)) return [];
-  return payload
-    .filter((game): game is UnknownRecord => Boolean(game) && typeof game === "object")
-    .map(toSportsDataGame);
-}
-
-async function fetchSportsDbDay(date: string): Promise<SportsDbEvent[]> {
-  const key = process.env.THESPORTSDB_KEY || "3";
-  const url = `https://www.thesportsdb.com/api/v1/json/${key}/eventsday.php?d=${date}&s=Soccer`;
-  const response = await fetch(url, { next: { revalidate: 60 }, signal: AbortSignal.timeout(3500) });
-  if (!response.ok) return [];
-  const payload = (await response.json()) as { events?: SportsDbEvent[] | null };
-  return Array.isArray(payload.events) ? payload.events : [];
 }
 
 function selectGames(games: ScoreGame[]): ScoreGame[] {
@@ -204,33 +110,198 @@ function selectGames(games: ScoreGame[]): ScoreGame[] {
   return [...live, ...finished.slice(0, MAX_FINISHED), ...upcoming.slice(0, MAX_UPCOMING)].slice(0, MAX_GAMES);
 }
 
-export async function getScores(requestedDate = todayYmd()): Promise<ScoresResult> {
-  const date = isYmd(requestedDate) ? requestedDate : todayYmd();
+function getTomorrow(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+let throttleUntil = 0;
+
+async function fetchFootballDataDay(date: string): Promise<ScoreGame[] | null> {
+  const token = process.env.FOOTBALL_DATA_API_KEY;
+  if (!token) {
+    return [];
+  }
+
+  if (Date.now() < throttleUntil) {
+    console.warn(`[football-data.org] Fetch skipped. Rate limit throttle is active until ${new Date(throttleUntil).toISOString()}`);
+    return null;
+  }
 
   try {
-    const sportsDataGames = await fetchSportsDataDay(date);
-    if (sportsDataGames.length > 0) {
-      return { source: "sportsdata", date, games: selectGames(sportsDataGames) };
+    const tomorrow = getTomorrow(date);
+    const url = `https://api.football-data.org/v4/matches?dateFrom=${date}&dateTo=${tomorrow}`;
+    const response = await fetch(url, {
+      headers: {
+        "X-Auth-Token": token,
+      },
+      next: { revalidate: 300 }, // Next.js level fetch caching (5 minutes)
+      signal: AbortSignal.timeout(5000),
+    });
+
+    // Inspect rate-limiting headers
+    const remainingHeader = response.headers.get("x-requests-available-minute");
+    if (remainingHeader) {
+      const remaining = parseInt(remainingHeader, 10);
+      console.log(`[football-data.org] X-Requests-Available-Minute: ${remaining}`);
+      if (remaining <= 1) {
+        // Safe limit: throttle queries for 60 seconds
+        throttleUntil = Date.now() + 60 * 1000;
+        console.warn(`[football-data.org] Approaching rate limit boundary. Throttling requests until ${new Date(throttleUntil).toISOString()}`);
+      }
     }
 
-    const events = await fetchSportsDbDay(date);
-    if (events.length === 0) {
-      return { source: "mock", date, games: MOCK_GAMES };
+    if (response.status === 429) {
+      console.error("[football-data.org] Rate limit exceeded (HTTP 429).");
+      const retryAfter = response.headers.get("retry-after");
+      const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : 60 * 1000;
+      throttleUntil = Date.now() + waitTime;
+      return null;
     }
 
-    const seen = new Set<string>();
-    const games: ScoreGame[] = [];
-    for (const event of events) {
-      const game = toGame(event, games.length);
-      if (seen.has(game.id)) continue;
-      seen.add(game.id);
-      games.push(game);
+    if (!response.ok) {
+      console.error(`football-data.org response failed: ${response.status}`);
+      return [];
     }
 
-    const selected = selectGames(games);
-    return { source: "thesportsdb", date, games: selected.length > 0 ? selected : [] };
+    const data = await response.json() as { matches?: FootballDataMatch[] };
+    if (!data.matches || !Array.isArray(data.matches)) return [];
+    
+    // Filter matches to only include ones starting with target date
+    const filteredMatches = data.matches.filter((m) => m.utcDate.startsWith(date));
+    return filteredMatches.map(toFDGame);
   } catch (error) {
-    console.error("getScores: live score fetch failed", error);
-    return { source: "mock", date, games: MOCK_GAMES };
+    console.error("fetchFootballDataDay failed", error);
+    return [];
   }
+}
+
+// Global variable memory cache for local-only demo mode
+const globalMemoryCache: Record<string, { payload: ScoreGame[]; updatedAt: number }> = {};
+
+export async function getScores(requestedDate = todayYmd()): Promise<ScoresResult> {
+  const date = isYmd(requestedDate) ? requestedDate : todayYmd();
+  const cacheKey = `scores_${date}`;
+  const isThrottled = Date.now() < throttleUntil;
+
+  let cachedPayload: ScoreGame[] | null = null;
+  let cacheAgeMs = Infinity;
+
+  // 1. Try to read from Neon DB cache
+  if (sql) {
+    try {
+      await ensureSchema();
+      const cached = await sql`
+        select payload, updated_at from scores_cache where cache_key = ${cacheKey}
+      ` as { payload: string; updated_at: string }[];
+      
+      if (cached.length > 0) {
+        const row = cached[0];
+        cachedPayload = JSON.parse(row.payload) as ScoreGame[];
+        cacheAgeMs = Date.now() - new Date(row.updated_at).getTime();
+      }
+    } catch (e) {
+      console.error("Failed to read scores from DB cache", e);
+    }
+  } else {
+    // 2. Try to read from local memory cache (during local demo runs)
+    const memCached = globalMemoryCache[cacheKey];
+    if (memCached) {
+      cachedPayload = memCached.payload;
+      cacheAgeMs = Date.now() - memCached.updatedAt;
+    }
+  }
+
+  // A. Cache is fresh: return it immediately
+  if (cachedPayload && cacheAgeMs < 5 * 60 * 1000) {
+    return {
+      source: "footballdata",
+      date,
+      games: cachedPayload,
+    };
+  }
+
+  // B. Rate limit throttle is active: skip fetch and serve expired cache if available
+  if (isThrottled) {
+    if (cachedPayload) {
+      return {
+        source: "footballdata",
+        date,
+        games: cachedPayload,
+      };
+    } else {
+      return {
+        source: "mock",
+        date,
+        games: MOCK_GAMES,
+      };
+    }
+  }
+
+  // C. Cache is stale/empty & not throttled: fetch from API
+  let games: ScoreGame[] = [];
+  let source: ScoresResult["source"] = "footballdata";
+
+  try {
+    const liveGames = await fetchFootballDataDay(date);
+    if (liveGames === null) {
+      // API signaled rate limiting or throttle during request
+      if (cachedPayload) {
+        return {
+          source: "footballdata",
+          date,
+          games: cachedPayload,
+        };
+      } else {
+        games = MOCK_GAMES;
+        source = "mock";
+      }
+    } else if (liveGames.length > 0) {
+      games = selectGames(liveGames);
+    } else {
+      games = MOCK_GAMES;
+      source = "mock";
+    }
+  } catch (err) {
+    console.error("Live scores fetch failed, falling back to cached or mock", err);
+    if (cachedPayload) {
+      return {
+        source: "footballdata",
+        date,
+        games: cachedPayload,
+      };
+    } else {
+      games = MOCK_GAMES;
+      source = "mock";
+    }
+  }
+
+  // 3. Save new payload to database cache or memory cache
+  if (source !== "mock" && games.length > 0) {
+    if (sql) {
+      try {
+        await sql`
+          insert into scores_cache (cache_key, payload, updated_at)
+          values (${cacheKey}, ${JSON.stringify(games)}, now())
+          on conflict (cache_key) do update 
+          set payload = excluded.payload, updated_at = now()
+        `;
+      } catch (e) {
+        console.error("Failed to write scores to DB cache", e);
+      }
+    } else {
+      globalMemoryCache[cacheKey] = {
+        payload: games,
+        updatedAt: Date.now(),
+      };
+    }
+  }
+
+  return {
+    source,
+    date,
+    games: games.length > 0 ? games : (cachedPayload || MOCK_GAMES),
+  };
 }

@@ -11,43 +11,68 @@
 }
 
 html {
-  background: #0a0a0f;
+  background: #040508;
   max-width: 100%;
   overflow-x: hidden;
+  font-family: var(--font-geist-sans), sans-serif;
+  scroll-behavior: smooth;
 }
 
+/* Custom Cyber Stadium Backdrop */
 body {
   min-height: 100vh;
   margin: 0;
-  background:
-    radial-gradient(circle at 12% 0%, rgba(24, 95, 165, 0.2), transparent 28rem),
-    radial-gradient(circle at 86% 8%, rgba(29, 158, 117, 0.18), transparent 24rem),
-    linear-gradient(180deg, #0a0a0f 0%, #0d1018 52%, #0a0a0f 100%);
-  color: #f8fafc;
+  color: #f1f5f9;
   max-width: 100%;
   overflow-x: hidden;
+  position: relative;
+  background: 
+    radial-gradient(circle at 50% 0%, rgba(24, 95, 165, 0.15), transparent 45rem),
+    radial-gradient(circle at 10% 30%, rgba(24, 95, 165, 0.08), transparent 30rem),
+    radial-gradient(circle at 90% 70%, rgba(29, 158, 117, 0.08), transparent 35rem),
+    linear-gradient(180deg, #05060a 0%, #0a0d16 50%, #030407 100%);
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+/* Cyber grid lines */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center top;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Glowing center lines representing stadium fields */
+body::after {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(90vw, 80rem);
+  height: 80vh;
+  border: 1px solid rgba(255, 255, 255, 0.01);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.003) 0%, transparent 70%);
 }
 
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid #ffffff;
+  outline: 2px solid #38bdf8;
   outline-offset: 3px;
 }
 
+/* Layout shell overrides */
 .goat-page {
   min-height: 100vh;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 12% 0%, rgba(24, 95, 165, 0.2), transparent 28rem),
-    radial-gradient(circle at 86% 8%, rgba(29, 158, 117, 0.18), transparent 24rem),
-    linear-gradient(180deg, #0a0a0f 0%, #0d1018 52%, #0a0a0f 100%);
+  position: relative;
 }
 
 .goat-shell {
@@ -55,318 +80,572 @@ a:focus-visible {
   max-width: 80rem;
   min-height: 100vh;
   margin-inline: auto;
-  padding: 1.25rem 1rem 7rem;
+  padding: 2.5rem 1.5rem 8rem;
+  position: relative;
+  z-index: 10;
 }
 
+/* Premium Typography Binding */
+h1, h2, h3, .font-outfit {
+  font-family: var(--font-outfit), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-space {
+  font-family: var(--font-space-grotesk), monospace;
+}
+
+/* Header Redesign */
 .goat-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.01);
+  backdrop-filter: blur(12px);
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  margin-bottom: 2rem;
 }
 
+/* Grid Layout */
 .goat-main-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
-  align-items: center;
-  gap: 1.5rem;
-  padding-block: 1.75rem;
+  grid-template-columns: 1.25fr 0.75fr;
+  align-items: start;
+  gap: 2rem;
+  padding-block: 1rem;
 }
 
 .goat-player-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  min-height: 620px;
+  gap: 1.75rem;
 }
 
 .goat-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.75rem;
 }
 
-.goat-panel,
-.goat-player-card {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.045);
-  border-radius: 8px;
-  backdrop-filter: blur(14px);
+/* Glassmorphism Panels */
+.goat-panel {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 13, 22, 0.5);
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+  padding: 1.75rem;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.goat-panel:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+/* ========================================================
+   FUT/Collectible Trading Card Styles for Player Cards
+   ======================================================== */
 .goat-player-card {
   position: relative;
   display: flex;
-  min-height: 500px;
+  min-height: 600px;
   flex-direction: column;
   justify-content: space-between;
+  border-radius: 20px;
+  padding: 1.5rem;
+  transition: all 0.5s cubic-bezier(0.15, 0.85, 0.35, 1);
+  background: linear-gradient(135deg, rgba(13, 17, 30, 0.85) 0%, rgba(6, 8, 14, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   overflow: hidden;
-  padding: 1rem;
+  z-index: 5;
+}
+
+/* Card Holographic reflection overlay */
+.goat-player-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(255, 255, 255, 0.04) 50%,
+    rgba(255, 255, 255, 0.08) 53%,
+    rgba(255, 255, 255, 0.04) 56%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 250% 250%;
+  background-position: 200% 0%;
+  transition: background-position 0.8s cubic-bezier(0.15, 0.85, 0.35, 1);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.goat-player-card:hover::after {
+  background-position: -50% 100%;
+}
+
+/* Interactive tilting and glowing highlights */
+.goat-player-card:hover {
+  transform: translateY(-8px) scale(1.01);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .goat-player-card[data-player="ron"] {
-  box-shadow: 0 0 40px rgba(24, 95, 165, 0.38);
+  box-shadow: 
+    0 15px 40px rgba(0, 0, 0, 0.5),
+    0 0 35px rgba(24, 95, 165, 0.18),
+    inset 0 0 24px rgba(24, 95, 165, 0.1);
+}
+.goat-player-card[data-player="ron"]:hover {
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.6),
+    0 0 50px rgba(24, 95, 165, 0.32),
+    inset 0 0 30px rgba(24, 95, 165, 0.15);
 }
 
 .goat-player-card[data-player="mes"] {
-  box-shadow: 0 0 40px rgba(29, 158, 117, 0.34);
+  box-shadow: 
+    0 15px 40px rgba(0, 0, 0, 0.5),
+    0 0 35px rgba(29, 158, 117, 0.16),
+    inset 0 0 24px rgba(29, 158, 117, 0.08);
+}
+.goat-player-card[data-player="mes"]:hover {
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.6),
+    0 0 50px rgba(29, 158, 117, 0.28),
+    inset 0 0 30px rgba(29, 158, 117, 0.12);
 }
 
+/* Trading Card Shield Layout Frame */
 .goat-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1rem;
+  z-index: 2;
+  position: relative;
 }
 
+/* Premium Card Badge / Vote Box */
+.goat-vote-count-box {
+  flex: 0 0 auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.625rem 0.875rem;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+/* Inner Caricature Frame */
 .goat-card-avatar {
   display: flex;
   flex: 1 1 auto;
   align-items: center;
   justify-content: center;
-  min-height: 270px;
-  padding-block: 0.75rem;
+  margin-block: 1rem;
+  position: relative;
+  z-index: 2;
 }
 
+/* Caricature card style frame with elegant borders */
 .goat-image-avatar {
-  position: relative;
-  display: flex;
-  width: min(100%, 280px);
-  height: clamp(260px, 34vw, 360px);
-  align-items: center;
-  justify-content: center;
-  margin-inline: auto;
+  background: linear-gradient(180deg, #0e131f 0%, #05070c 100%);
+  border-radius: 12px;
+  border: 3px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.65),
+    inset 0 0 20px rgba(0, 0, 0, 0.5);
   overflow: hidden;
+  position: relative;
+  aspect-ratio: 3/4;
+}
+
+/* Subtle tech grid pattern overlay on the avatar background */
+.goat-image-avatar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 14px 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Glowing radial backdrop inside the frame */
+.goat-image-avatar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.75;
+  transition: opacity 0.5s ease;
+}
+
+.goat-image-avatar.player-ron::after {
+  background: radial-gradient(circle at 50% 55%, rgba(24, 95, 165, 0.35) 0%, rgba(24, 95, 165, 0) 70%);
+}
+
+.goat-image-avatar.player-mes::after {
+  background: radial-gradient(circle at 50% 55%, rgba(29, 158, 117, 0.3) 0%, rgba(29, 158, 117, 0) 70%);
+}
+
+.goat-image-avatar.player-ron {
+  border-color: rgba(24, 95, 165, 0.4);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.65),
+    inset 0 0 25px rgba(24, 95, 165, 0.15);
+}
+
+.goat-image-avatar.player-mes {
+  border-color: rgba(29, 158, 117, 0.4);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.65),
+    inset 0 0 25px rgba(29, 158, 117, 0.15);
 }
 
 .goat-image-avatar-inner {
   position: relative;
-  width: 100%;
-  height: 100%;
+  z-index: 2;
+}
+
+/* Gold/Silver outlines for leading vs losing */
+.goat-player-card[data-leader="true"] .goat-image-avatar {
+  border-color: #f59e0b; /* Golden border for leader */
+  box-shadow: 
+    0 10px 30px rgba(245, 158, 11, 0.35),
+    0 0 20px rgba(245, 158, 11, 0.2),
+    inset 0 0 20px rgba(245, 158, 11, 0.1);
+}
+
+.goat-player-card[data-leader="false"] .goat-image-avatar {
+  filter: saturate(0.85);
+}
+
+/* Hover scales image slightly */
+.goat-player-card:hover .goat-image-avatar-img {
+  transform: scale(1.03);
 }
 
 .goat-image-avatar-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  transition: transform 0.4s ease;
 }
 
+/* Clicker game floaters */
+@keyframes floatUp {
+  0% {
+    transform: translate(-50%, 0) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -20px) scale(1.1);
+  }
+  100% {
+    transform: translate(-50%, -100px) scale(0.9);
+    opacity: 0;
+  }
+}
+
+.hype-floater {
+  position: absolute;
+  left: 50%;
+  pointer-events: none;
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 900;
+  z-index: 100;
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.8), 0 0 15px currentColor;
+  animation: floatUp 0.9s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+/* Glowing Sci-Fi Button */
 .goat-vote-button {
+  position: relative;
   display: inline-flex;
   width: 100%;
-  height: 3.5rem;
+  height: 3.75rem;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  border: 0;
-  border-radius: 6px;
+  gap: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   color: #ffffff;
+  font-family: var(--font-outfit), sans-serif;
   font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   cursor: pointer;
+  z-index: 4;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.goat-vote-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 100%);
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.goat-vote-button:hover::before {
+  opacity: 0.25;
 }
 
 .goat-vote-button[data-player="ron"] {
-  background: #185fa5;
+  background: linear-gradient(135deg, #185FA5 0%, #0f3d6a 100%);
+}
+.goat-vote-button[data-player="ron"]:hover {
+  box-shadow: 0 0 25px rgba(24, 95, 165, 0.5);
+  border-color: rgba(24, 95, 165, 0.4);
 }
 
 .goat-vote-button[data-player="mes"] {
-  background: #1d9e75;
+  background: linear-gradient(135deg, #1D9E75 0%, #115e46 100%);
+}
+.goat-vote-button[data-player="mes"]:hover {
+  box-shadow: 0 0 25px rgba(29, 158, 117, 0.5);
+  border-color: rgba(29, 158, 117, 0.4);
 }
 
-.goat-vote-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+.goat-vote-button:active {
+  transform: scale(0.96);
 }
 
-.goat-vote-count-box {
-  flex: 0 0 auto;
+/* ========================================================
+   Sleek Vote Bar Gauge with VS Badge
+   ======================================================== */
+.goat-votebar-container {
+  position: relative;
+  padding-block: 0.75rem;
 }
 
-.goat-player-name {
-  line-height: 1.08;
-  overflow-wrap: anywhere;
+.goat-votebar-rail {
+  height: 2rem;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.6);
+  position: relative;
+  overflow: hidden;
 }
 
+.goat-votebar-fill {
+  height: 100%;
+  transition: width 0.6s cubic-bezier(0.1, 0.9, 0.2, 1);
+  position: relative;
+}
+
+.goat-votebar-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 15px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2));
+  transform: skewX(-20deg);
+}
+
+.goat-votebar-vs {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2.75rem;
+  height: 2.75rem;
+  background: #11131e;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 900;
+  font-size: 0.85rem;
+  color: #fff;
+  z-index: 10;
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.goat-votebar-vs.pulse {
+  animation: vsPulse 0.3s ease-out;
+}
+
+@keyframes vsPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    border-color: #f59e0b;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ========================================================
+   TV Broadcast Sports Ticker for Scores
+   ======================================================== */
+.goat-score-row {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.02);
+  transition: all 0.25s ease;
+}
+
+.goat-score-row:hover {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.goat-score-value {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-space-grotesk), monospace;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.goat-score-status.live-badge {
+  background: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+/* ========================================================
+   FUT Attributes Layout inside Cards
+   ======================================================== */
+.fut-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.fut-stat-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fut-stat-val {
+  font-family: var(--font-space-grotesk), monospace;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #ffffff;
+}
+
+.fut-stat-lbl {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  margin-top: -1px;
+}
+
+/* Responsive Overrides */
 @media (max-width: 1023px) {
   .goat-main-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 }
 
 @media (max-width: 767px) {
   .goat-shell {
-    padding: 0.875rem 0.75rem calc(6rem + env(safe-area-inset-bottom));
+    padding: 1.25rem 0.875rem calc(6.5rem + env(safe-area-inset-bottom));
   }
 
   .goat-header {
-    flex-direction: column;
-    gap: 0.875rem;
-    padding-bottom: 1rem;
-  }
-
-  .goat-header-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .goat-main-grid {
-    gap: 1rem;
-    padding-block: 1rem;
+    padding: 1.25rem 1.25rem;
+    margin-bottom: 1.5rem;
   }
 
   .goat-player-grid {
     grid-template-columns: 1fr;
-    min-height: auto;
-    gap: 0.875rem;
+    gap: 1.25rem;
   }
 
   .goat-player-card {
-    min-height: 430px;
-    padding: 0.875rem;
-  }
-
-  .goat-card-head {
-    gap: 0.625rem;
-  }
-
-  .goat-card-avatar {
-    min-height: 220px;
-    padding-block: 0.5rem;
+    min-height: auto;
+    padding: 1.25rem;
   }
 
   .goat-image-avatar {
-    width: min(100%, 235px) !important;
-    height: clamp(215px, 58vw, 250px) !important;
-  }
-
-  .goat-vote-button {
-    height: 3.15rem;
-  }
-
-  .goat-meter-head {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .goat-meter-actions {
-    display: grid;
-    width: 100%;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .goat-score-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.5rem 0.75rem;
-  }
-
-  .goat-score-home {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .goat-score-value {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
-  }
-
-  .goat-score-away {
-    grid-column: 1;
-    grid-row: 2;
-    text-align: left;
-  }
-
-  .goat-score-status {
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: end;
-  }
-
-  .goat-stat-header {
-    display: none;
+    width: min(100%, 240px) !important;
+    height: auto !important;
+    aspect-ratio: 3/4;
   }
 
   .goat-stat-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.25rem 0.75rem;
+    grid-template-columns: 1.2fr 0.9fr 0.9fr;
   }
 
-  .goat-stat-label {
-    grid-column: 1 / -1;
-  }
-
-  .goat-stat-value {
-    text-align: left;
-    font-size: 1rem;
-  }
-
-  .goat-stat-value + .goat-stat-value {
-    text-align: right;
-  }
-
-  .goat-sticky-ad-shell .adsbygoogle,
-  .goat-sticky-ad-shell [style] {
-    min-height: 48px !important;
+  .goat-score-row {
+    grid-template-columns: 1.2fr auto 1.2fr auto;
+    gap: 0.5rem;
   }
 }
 
-@media (max-width: 430px) {
-  .goat-shell {
-    padding-inline: 0.625rem;
+@media (max-width: 480px) {
+  .goat-header {
+    padding: 1rem 1rem;
   }
-
-  .goat-player-card {
-    min-height: 410px;
-  }
-
-  .goat-player-name {
-    font-size: 1.65rem;
-  }
-
-  .goat-card-head {
-    align-items: stretch;
-  }
-
-  .goat-vote-count-box {
-    padding-inline: 0.625rem;
-  }
-
-  .goat-vote-count-box p:last-child {
-    font-size: 1.05rem;
-  }
-
-  .goat-image-avatar {
-    width: min(100%, 215px) !important;
-    height: clamp(200px, 56vw, 230px) !important;
-  }
-
-  .goat-panel,
-  .goat-player-card {
-    border-radius: 7px;
+  
+  .fut-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    padding: 0.5rem;
   }
 }
 
-@media (max-width: 360px) {
-  .goat-card-head {
-    flex-direction: column;
-  }
+/* Stats Card & Progress Bars Glows */
+.goat-stats-card {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(10, 13, 22, 0.5) !important;
+  backdrop-filter: blur(16px) !important;
+  border-radius: 16px !important;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+  overflow: hidden;
+}
 
-  .goat-vote-count-box {
-    width: 100%;
-    text-align: left;
-  }
+.bg-ron {
+  background: linear-gradient(90deg, #1e40af, #185FA5) !important;
+  box-shadow: 0 0 10px rgba(24, 95, 165, 0.3) !important;
+}
 
-  .goat-meter-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .goat-meter-actions button {
-    width: 100%;
-  }
+.bg-mes {
+  background: linear-gradient(90deg, #1D9E75, #047857) !important;
+  box-shadow: 0 0 10px rgba(29, 158, 117, 0.3) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -23,6 +23,13 @@ export async function ensureSchema() {
         values ('ron', ${SEED_COUNTS.ron}), ('mes', ${SEED_COUNTS.mes})
         on conflict (player) do nothing
       `;
+      await sql`
+        create table if not exists scores_cache (
+          cache_key text primary key,
+          payload text not null,
+          updated_at timestamp with time zone not null default now()
+        )
+      `;
     })().catch((error) => {
       ensured = null;
       throw error;

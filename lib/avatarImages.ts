@@ -26,18 +26,18 @@ const AVATAR_IMAGES: Record<PlayerKey, AvatarImageSet> = {
   },
   mes: {
     happy: {
-      20: "/avatars/messi/happy-20.jpeg",
-      40: "/avatars/messi/happy-40.jpeg",
-      60: "/avatars/messi/happy-60.jpeg",
-      80: "/avatars/messi/happy-80.jpeg",
-      100: "/avatars/messi/happy-100.jpeg",
+      20: "/avatars/messi/happy-20.png",
+      40: "/avatars/messi/happy-40.png",
+      60: "/avatars/messi/happy-60.png",
+      80: "/avatars/messi/happy-80.png",
+      100: "/avatars/messi/happy-100.png",
     },
     sad: {
       20: "/avatars/messi/sad-20.png",
-      40: "/avatars/messi/sad-40.jpeg",
-      60: "/avatars/messi/sad-60.jpeg",
-      80: "/avatars/messi/sad-80.jpeg",
-      100: "/avatars/messi/sad-100.jpeg",
+      40: "/avatars/messi/sad-40.png",
+      60: "/avatars/messi/sad-60.png",
+      80: "/avatars/messi/sad-80.png",
+      100: "/avatars/messi/sad-100.png",
     },
   },
 };

@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import { getAvatarMotion } from "@/lib/avatarMotion";
 
 type ImageAvatarProps = {
+  player: "ron" | "mes";
   src: string;
   sadSrc?: string;
   mood: number;
@@ -33,7 +34,7 @@ const imageStyle: CSSProperties = {
   userSelect: "none",
 };
 
-export default function ImageAvatar({ src, sadSrc, mood, alt, winEmoji = "🔥" }: ImageAvatarProps) {
+export default function ImageAvatar({ player, src, sadSrc, mood, alt, winEmoji = "🔥" }: ImageAvatarProps) {
   const m = getAvatarMotion(mood);
   const sadness = m.losing ? m.magnitude : 0;
 
@@ -48,7 +49,7 @@ export default function ImageAvatar({ src, sadSrc, mood, alt, winEmoji = "🔥" 
   const tearDuration = Math.max(0.85, 1.7 - m.magnitude);
 
   return (
-    <div className="goat-image-avatar relative flex h-full max-h-[430px] w-full max-w-[300px] items-center justify-center" style={stageStyle}>
+    <div className={`goat-image-avatar player-${player} relative flex h-full max-h-[430px] w-full max-w-[300px] items-center justify-center`} style={stageStyle}>
       <motion.div animate={m.body} className="goat-image-avatar-inner relative h-full w-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

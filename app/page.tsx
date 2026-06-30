@@ -2,7 +2,7 @@
 
 import confetti from "canvas-confetti";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdSlot from "@/components/AdSlot";
 import ImageAvatar from "@/components/ImageAvatar";
 import PlayerCard from "@/components/PlayerCard";
@@ -46,8 +46,47 @@ export default function Home() {
   const reduceMotion = useReducedMotion();
   const [resetMessage, setResetMessage] = useState("");
   const [isResetting, setIsResetting] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const [careerStats, setCareerStats] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/career-stats")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.stats) setCareerStats(data.stats);
+      })
+      .catch((err) => console.error("Failed to load career stats", err));
+  }, []);
+
   const reactionCopy = getReactionCopy(percentages.ron, percentages.mes);
   const lastConfettiRef = useRef(0);
+
+  if (!isReady) {
+    return (
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-noir">
+        <motion.div
+          animate={{
+            scale: [0.97, 1.03, 0.97],
+            opacity: [0.5, 0.9, 0.5]
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="flex flex-col items-center"
+        >
+          <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-white/20 bg-white/[0.03] text-3xl font-black italic tracking-widest text-white shadow-[0_0_35px_rgba(255,255,255,0.06)] font-space">
+            VS
+            <div className="absolute inset-0 rounded-full border border-white/5 animate-ping" />
+          </div>
+          <p className="mt-6 text-xs font-black uppercase tracking-[0.3em] text-slate-500 font-outfit">
+            Entering Arena...
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
 
   const ronaldoMood = percentages.ron - percentages.mes;
   const messiMood = -ronaldoMood;
@@ -58,6 +97,11 @@ export default function Home() {
     if (!vote(player)) return;
     if (resetMessage) setResetMessage("");
     play(player);
+    
+    // Trigger camera flash/stadium light pulse
+    setFlash(true);
+    setTimeout(() => setFlash(false), 120);
+
     if (reduceMotion) return;
 
     const now = Date.now();
@@ -87,6 +131,7 @@ export default function Home() {
 
   const ronAvatar = (
     <ImageAvatar
+      player="ron"
       src={ronaldoImage.src}
       mood={ronaldoMood}
       alt={`Cristiano Ronaldo ${ronaldoImage.level}% ${ronaldoImage.emotion} avatar`}
@@ -96,6 +141,7 @@ export default function Home() {
 
   const mesAvatar = (
     <ImageAvatar
+      player="mes"
       src={messiImage.src}
       mood={messiMood}
       alt={`Lionel Messi ${messiImage.level}% ${messiImage.emotion} avatar`}
@@ -104,7 +150,7 @@ export default function Home() {
   );
 
   return (
-    <main className="goat-page relative min-h-screen overflow-x-hidden bg-night text-slate-50">
+    <main className={`goat-page relative min-h-screen overflow-x-hidden bg-night text-slate-50 transition-all duration-100 ${flash ? "brightness-125 saturate-110" : ""}`}>
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden">
         <motion.div
           className="absolute -left-24 top-4 h-80 w-80 rounded-full bg-ron/20 blur-3xl"
@@ -185,9 +231,10 @@ export default function Home() {
               player="ron"
               name="Cristiano Ronaldo"
               meta="Portugal · No. 7"
-              votes={formatNumber(counts.ron)}
+              votes={counts.ron}
               avatar={ronAvatar}
               disabled={!isReady}
+              isLeader={percentages.ron > percentages.mes}
               ctaLabel="Vote Cristiano"
               onVote={() => submitVote("ron")}
             />
@@ -195,9 +242,10 @@ export default function Home() {
               player="mes"
               name="Lionel Messi"
               meta="Argentina · No. 10"
-              votes={formatNumber(counts.mes)}
+              votes={counts.mes}
               avatar={mesAvatar}
               disabled={!isReady}
+              isLeader={percentages.mes > percentages.ron}
               ctaLabel="Vote Lionel"
               onVote={() => submitVote("mes")}
             />
@@ -214,19 +262,7 @@ export default function Home() {
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Live vote meter</p>
                   <h2 className="text-2xl font-black text-white">{formatNumber(total)} total votes</h2>
                 </div>
-                <div className="goat-meter-actions flex items-center gap-2">
-                  <div className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-300">
-                    {isLive ? "Live · Neon" : "Demo mode"}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={submitReset}
-                    disabled={!isReady || isResetting}
-                    className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-black text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isResetting ? "Resetting" : "Reset"}
-                  </button>
-                </div>
+
               </div>
 
               <VoteBar ronaldoPercent={percentages.ron} messiPercent={percentages.mes} />
@@ -258,7 +294,7 @@ export default function Home() {
           </aside>
         </section>
 
-        <StatsPanel />
+        <StatsPanel ronVotes={counts.ron} mesVotes={counts.mes} careerStats={careerStats} />
       </section>
     </main>
   );
