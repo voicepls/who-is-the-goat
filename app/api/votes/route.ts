@@ -30,7 +30,10 @@ async function readTotals(): Promise<Totals> {
 export async function GET() {
   try {
     const totals = await readTotals();
-    return NextResponse.json({ enabled: Boolean(sql), totals });
+    const response = NextResponse.json({ enabled: Boolean(sql), totals });
+    // Cache the votes endpoint at the Edge CDN for 2 seconds, with 5 seconds of background revalidation allowance
+    response.headers.set("Cache-Control", "public, s-maxage=2, stale-while-revalidate=5");
+    return response;
   } catch (error) {
     console.error("GET /api/votes failed", error);
     return NextResponse.json({ enabled: false, totals: { ron: 0, mes: 0 } });

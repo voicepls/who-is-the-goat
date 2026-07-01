@@ -14,7 +14,7 @@ type Counts = Record<PlayerKey, number>;
 const FLUSH_IDLE_MS = 400;
 const FLUSH_MAX_WAIT_MS = 8000;
 const CLICK_COOLDOWN_MS = 70;
-const POLL_MS = 1000;
+const POLL_MS = 5000;
 const LOCAL_VOTES_KEY = "goat_demo_votes";
 
 function getPercentages(counts: Counts) {
@@ -154,6 +154,14 @@ export function useVotes() {
   // WebSocket Manager Hook
   useEffect(() => {
     if (enabled === false) return; // Skip in local demo mode
+
+    const isVercel = typeof window !== "undefined" && (
+      window.location.hostname.includes("vercel.app") ||
+      process.env.NEXT_PUBLIC_DISABLE_WEBSOCKETS === "true"
+    );
+    if (isVercel) {
+      return;
+    }
 
     let socket: WebSocket | null = null;
     let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
