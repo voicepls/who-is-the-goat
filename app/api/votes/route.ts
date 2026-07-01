@@ -83,11 +83,8 @@ export async function POST(request: Request) {
 function canResetVotes(request: Request) {
   const token = process.env.VOTE_RESET_TOKEN;
 
-  const hostname = new URL(request.url).hostname;
-  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
-
   if (!token) {
-    return process.env.NODE_ENV !== "production" || isLocalhost;
+    return process.env.NODE_ENV !== "production";
   }
 
   const auth = request.headers.get("authorization");

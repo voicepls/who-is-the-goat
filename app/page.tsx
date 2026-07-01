@@ -1,6 +1,5 @@
 "use client";
 
-import confetti from "canvas-confetti";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import AdSlot from "@/components/AdSlot";
@@ -107,15 +106,18 @@ export default function Home() {
     const now = Date.now();
     if (now - lastConfettiRef.current > 220) {
       lastConfettiRef.current = now;
-      confetti({
-        particleCount: 70,
-        spread: 70,
-        startVelocity: 42,
-        origin: player === "ron" ? { x: 0.25, y: 0.5 } : { x: 0.75, y: 0.5 },
-        colors:
-          player === "ron"
-            ? ["#185FA5", "#ffffff", "#c7d2fe"]
-            : ["#1D9E75", "#ffffff", "#bfdbfe"],
+      import("canvas-confetti").then((module) => {
+        const confetti = module.default;
+        confetti({
+          particleCount: 70,
+          spread: 70,
+          startVelocity: 42,
+          origin: player === "ron" ? { x: 0.25, y: 0.5 } : { x: 0.75, y: 0.5 },
+          colors:
+            player === "ron"
+              ? ["#185FA5", "#ffffff", "#c7d2fe"]
+              : ["#1D9E75", "#ffffff", "#bfdbfe"],
+        });
       });
     }
   };

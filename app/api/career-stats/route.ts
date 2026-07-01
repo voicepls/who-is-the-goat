@@ -24,8 +24,12 @@ const CACHE_MS = 6 * 60 * 60 * 1000; // 6 hours cache
 
 export async function GET() {
   const now = Date.now();
-  if (cachedStats && now - lastFetch < CACHE_MS) {
-    return NextResponse.json({ stats: cachedStats });
+  let stats = cachedStats;
+
+  if (stats && now - lastFetch < CACHE_MS) {
+    const response = NextResponse.json({ stats });
+    response.headers.set("Cache-Control", "public, s-maxage=21600, stale-while-revalidate=43200");
+    return response;
   }
 
   try {
@@ -49,7 +53,7 @@ export async function GET() {
     const mesClub = mesEdges.find(e => e.node.competition === "All Time Club");
     const mesInt = mesEdges.find(e => e.node.competition === "All Time Internationals");
 
-    const stats = [
+    stats = [
       { 
         label: "Club goals", 
         ron: ronClub ? parseInt(ronClub.node.goals) : 830, 
@@ -67,9 +71,13 @@ export async function GET() {
 
     cachedStats = stats;
     lastFetch = now;
-    return NextResponse.json({ stats });
   } catch (error) {
     console.error("GET /api/career-stats failed, serving fallback:", error);
-    return NextResponse.json({ stats: cachedStats || DEFAULT_STATS });
+    stats = cachedStats || DEFAULT_STATS;
   }
+
+  const response = NextResponse.json({ stats });
+  // Cache for 6 hours on Edge CDN
+  response.headers.set("Cache-Control", "public, s-maxage=21600, stale-while-revalidate=43200");
+  return response;
 }
