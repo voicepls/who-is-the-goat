@@ -126,6 +126,22 @@ export default function RootLayout({
             crossOrigin="anonymous"
           />
         )}
+
+        {process.env.NEXT_PUBLIC_ADSTERRA_POPUNDER_URL && (
+          <Script
+            id="adsterra-popunder"
+            strategy="lazyOnload"
+            src={process.env.NEXT_PUBLIC_ADSTERRA_POPUNDER_URL}
+          />
+        )}
+
+        {process.env.NEXT_PUBLIC_ADSTERRA_SOCIAL_BAR_URL && (
+          <Script
+            id="adsterra-social-bar"
+            strategy="lazyOnload"
+            src={process.env.NEXT_PUBLIC_ADSTERRA_SOCIAL_BAR_URL}
+          />
+        )}
       </body>
     </html>
   );

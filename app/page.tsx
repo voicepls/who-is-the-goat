@@ -290,7 +290,7 @@ export default function Home() {
 
             <WCScores />
 
-            <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR} minHeight={180} />
+            <AdSlot adType="sidebar" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR} minHeight={180} />
           </aside>
         </section>
 

@@ -47,7 +47,7 @@ export default function StickyAdBanner({ slot }: StickyAdBannerProps) {
             >
               ✕
             </button>
-            <AdSlot slot={slot} label="Sponsored" minHeight={60} className="border-0 bg-transparent" />
+            <AdSlot adType="banner" slot={slot} label="Sponsored" minHeight={60} className="border-0 bg-transparent" />
           </div>
         </motion.div>
       )}
