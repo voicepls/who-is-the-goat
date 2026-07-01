@@ -14,6 +14,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "Inter", "system-ui", "sans-serif"],
+        outfit: ["var(--font-outfit)", "sans-serif"],
+        space: ["var(--font-space-grotesk)", "sans-serif"],
       },
       boxShadow: {
         glowBlue: "0 0 40px rgba(24, 95, 165, 0.38)",

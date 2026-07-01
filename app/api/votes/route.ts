@@ -67,6 +67,9 @@ export async function POST(request: Request) {
     `;
 
     const totals = await readTotals();
+    if (typeof (global as any).broadcastVotes === "function") {
+      (global as any).broadcastVotes(totals);
+    }
     return NextResponse.json({ enabled: true, totals });
   } catch (error) {
     console.error("POST /api/votes failed", error);
@@ -107,6 +110,9 @@ export async function DELETE(request: Request) {
     `;
 
     const totals = await readTotals();
+    if (typeof (global as any).broadcastVotes === "function") {
+      (global as any).broadcastVotes(totals);
+    }
     return NextResponse.json({ enabled: true, totals });
   } catch (error) {
     console.error("DELETE /api/votes failed", error);

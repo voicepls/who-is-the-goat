@@ -11,10 +11,10 @@ export type { PlayerKey };
 
 type Counts = Record<PlayerKey, number>;
 
-const FLUSH_IDLE_MS = 1800;
+const FLUSH_IDLE_MS = 400;
 const FLUSH_MAX_WAIT_MS = 8000;
 const CLICK_COOLDOWN_MS = 70;
-const POLL_MS = 2500;
+const POLL_MS = 1000;
 const LOCAL_VOTES_KEY = "goat_demo_votes";
 
 function getPercentages(counts: Counts) {
@@ -60,6 +60,7 @@ export function useVotes() {
   const [unsynced, setUnsynced] = useState<Counts>({ ron: 0, mes: 0 });
   const [myVotes, setMyVotes] = useState<Counts>({ ron: 0, mes: 0 });
   const [isReady, setIsReady] = useState(false);
+  const [isWsConnected, setIsWsConnected] = useState(false);
 
   const unsyncedRef = useRef<Counts>({ ron: 0, mes: 0 });
   const enabledRef = useRef<boolean | null>(null);
@@ -150,6 +151,70 @@ export function useVotes() {
     }, wait);
   }, [flush]);
 
+  // WebSocket Manager Hook
+  useEffect(() => {
+    if (enabled === false) return; // Skip in local demo mode
+
+    let socket: WebSocket | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
+
+    const connectWs = () => {
+      if (cancelled) return;
+
+      try {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/api/votes/ws`;
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+          if (cancelled) {
+            socket?.close();
+            return;
+          }
+          console.log("[WebSocket] Connected to live vote stream");
+          setIsWsConnected(true);
+        };
+
+        socket.onmessage = (event) => {
+          if (cancelled) return;
+          try {
+            const data = JSON.parse(event.data);
+            if (data && typeof data.ron === "number" && typeof data.mes === "number") {
+              setServerTotals(data);
+            }
+          } catch (e) {
+            console.error("Failed to parse WebSocket message", e);
+          }
+        };
+
+        socket.onclose = () => {
+          if (cancelled) return;
+          setIsWsConnected(false);
+          console.log("[WebSocket] Connection closed. Reconnecting in 5s...");
+          reconnectTimeout = setTimeout(connectWs, 5000);
+        };
+
+        socket.onerror = () => {
+          socket?.close();
+        };
+      } catch (err) {
+        console.error("WebSocket setup failed", err);
+        setIsWsConnected(false);
+        reconnectTimeout = setTimeout(connectWs, 5000);
+      }
+    };
+
+    connectWs();
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (socket) socket.close();
+    };
+  }, [enabled]);
+
+  // Baseline Pull and Polling Fallback Hook
   useEffect(() => {
     let cancelled = false;
 
@@ -177,14 +242,18 @@ export function useVotes() {
     };
 
     pull();
-    const timer = window.setInterval(pull, POLL_MS);
+    const timer = window.setInterval(() => {
+      if (!isWsConnected) {
+        pull();
+      }
+    }, POLL_MS);
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     };
-  }, [enableLocalDemoMode]);
+  }, [enableLocalDemoMode, isWsConnected]);
 
   const vote = useCallback(
     (player: PlayerKey) => {

@@ -2,7 +2,20 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import Script from "next/script";
 import { GeistSans } from "geist/font/sans";
+import { Outfit, Space_Grotesk } from "next/font/google";
 import MotionProvider from "@/components/MotionProvider";
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
 import StickyAdBanner from "@/components/StickyAdBanner";
 import StructuredData from "@/components/StructuredData";
 import { SITE_URL } from "@/lib/site";
@@ -94,7 +107,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${GeistSans.variable} font-sans antialiased`}>
+      <body className={`${GeistSans.variable} ${outfit.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
         <MotionProvider>
           {children}
           <StickyAdBanner slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_BANNER} />
@@ -111,6 +124,22 @@ export default function RootLayout({
             strategy="afterInteractive"
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
             crossOrigin="anonymous"
+          />
+        )}
+
+        {process.env.NEXT_PUBLIC_ADSTERRA_POPUNDER_URL && (
+          <Script
+            id="adsterra-popunder"
+            strategy="lazyOnload"
+            src={process.env.NEXT_PUBLIC_ADSTERRA_POPUNDER_URL}
+          />
+        )}
+
+        {process.env.NEXT_PUBLIC_ADSTERRA_SOCIAL_BAR_URL && (
+          <Script
+            id="adsterra-social-bar"
+            strategy="lazyOnload"
+            src={process.env.NEXT_PUBLIC_ADSTERRA_SOCIAL_BAR_URL}
           />
         )}
       </body>

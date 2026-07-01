@@ -66,7 +66,7 @@ export default function WCScores() {
           <h2 className="text-2xl font-black text-white">Live scores</h2>
         </div>
         <p className="pt-1 text-right text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
-          {source !== "mock" ? "Today · 60s" : "Sample data"}
+          {source !== "mock" ? "Today · 5m Cache" : "Sample data"}
         </p>
       </div>
 
@@ -90,7 +90,7 @@ export default function WCScores() {
               <motion.span
                 animate={{ scale: [1, 1.08, 1], opacity: [0.82, 1, 0.82] }}
                 transition={{ repeat: Infinity, duration: 1.1, ease: "easeInOut" }}
-                className="goat-score-status rounded-full bg-red-500 px-2 py-1 text-[10px] font-black text-white"
+                className="goat-score-status live-badge rounded-full px-2 py-1 text-[10px] font-black text-white"
               >
                 LIVE
               </motion.span>
